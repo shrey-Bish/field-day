@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SYNTERRA command center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
+<style>
+:root{--ink:#17201A;--ink2:#47524A;--ink3:#5B665E;--brand:#12372A;--brand2:#135C36;--soft:rgba(18,55,42,.06);--line:rgba(18,55,42,.08);
+  --red:#C8261B;--A:#2F6FDB;--B:#E07B12;--C:#8E4FD0;--ok-bg:#DDF0E3}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#8DB86B;color:var(--ink);font-family:Inter,system-ui,-apple-system,'Segoe UI',sans-serif}
+#scene{position:fixed;inset:0;display:block}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+.num{font-family:'Space Grotesk',system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.card{position:fixed;background:rgba(255,255,255,.88);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.7);border-radius:18px;box-shadow:0 10px 30px rgba(16,32,20,.18),0 1px 2px rgba(16,32,20,.08);z-index:10}
+.eyebrow{margin:0;font-size:13px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.dot{flex:none;width:11px;height:11px;border-radius:50%;display:block}
+
+header.card{left:16px;right:16px;top:16px;height:68px;padding:0 12px 0 14px;display:flex;align-items:center;gap:24px;z-index:20}
+.logo{display:flex;align-items:center;gap:12px;min-width:260px}
+.logo span{font-family:'Space Grotesk',system-ui,sans-serif;font-size:21px;font-weight:700;letter-spacing:.08em}
+nav{display:flex;gap:4px;padding:4px;background:var(--soft);border-radius:15px;margin:0 auto}
+nav button{height:44px;padding:0 22px;border:0;border-radius:12px;background:transparent;color:var(--ink2);font-size:15px;font-weight:500}
+nav button[aria-current="page"]{background:var(--brand);color:#fff;font-weight:600}
+.hright{display:flex;align-items:center;gap:10px;min-width:260px;justify-content:flex-end}
+.stepper{display:flex;align-items:center;gap:2px;height:44px;padding:0 4px;border-radius:12px;background:var(--soft)}
+.stepper button{width:36px;height:36px;border:0;border-radius:9px;background:transparent;display:flex;align-items:center;justify-content:center}
+.stepper button:hover{background:rgba(18,55,42,.08)}
+.sqbtn{width:44px;height:44px;border:0;border-radius:12px;background:var(--soft);display:flex;align-items:center;justify-content:center}
+
+#layers{left:16px;top:100px;width:248px;padding:16px 18px 12px;display:flex;flex-direction:column;gap:4px}
+.tog{width:100%;min-height:44px;border:0;background:transparent;padding:0;display:flex;align-items:center;gap:12px;font-size:15px;font-weight:500;text-align:left}
+.tog small{display:block;font-size:13px;font-weight:400;color:var(--ink3)}
+.sw{flex:none;position:relative;width:38px;height:22px;border-radius:11px;background:#C5CCC6;display:block;transition:background .15s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:left .15s}
+.tog[aria-pressed="true"] .sw{background:var(--brand)}
+.tog[aria-pressed="true"] .sw::after{left:18px}
+
+#progress{right:16px;top:100px;width:312px;padding:16px 18px 18px;display:flex;flex-direction:column;gap:12px}
+.kv{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.kv span:first-child{font-size:14px;color:var(--ink2)}
+.kv span:last-child{font-size:17px;font-weight:700}
+.okbadge{display:flex;align-items:center;gap:7px;align-self:flex-start;padding:6px 11px;border-radius:10px;background:var(--ok-bg);color:var(--brand2);font-size:13px;font-weight:600}
+
+#decisions{right:16px;top:344px;width:312px;padding:16px 18px 8px;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 560px)}
+#decList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;overflow:auto}
+#decList li{display:flex;gap:12px;padding:12px 4px;border-top:1px solid var(--line)}
+#decList li .when{flex:none;display:flex;align-items:center;gap:8px;width:62px;height:21px;font-size:14px;font-weight:600;color:var(--ink3)}
+#decList li p{margin:0;font-size:15px;line-height:1.45}
+#decList li.hot{padding:14px;border:0;border-radius:14px;background:#FDECEA;box-shadow:inset 0 0 0 1.5px #F0A39C;margin-bottom:4px}
+.newtag{font-size:12px;font-weight:700;color:#fff;background:var(--red);padding:2px 8px;border-radius:8px}
+.linkbtn{height:44px;border:0;background:transparent;color:var(--brand2);font-size:14px;font-weight:600;text-align:left;padding:0 4px}
+
+#tractor{left:16px;bottom:16px;width:520px;padding:14px 18px 16px;display:flex;flex-direction:column;gap:14px}
+.seg{display:flex;gap:4px;padding:3px;border-radius:13px;background:rgba(18,55,42,.07)}
+.seg button{width:60px;height:40px;border:0;border-radius:10px;background:transparent;color:var(--ink2);display:flex;align-items:center;justify-content:center;gap:7px;font-size:16px;font-weight:700}
+.seg button[aria-pressed="true"]{background:#fff;box-shadow:0 1px 3px rgba(16,32,20,.18);color:var(--ink)}
+.stat{flex:1;display:flex;flex-direction:column;gap:6px}
+.stat>span:first-child{font-size:13px;color:var(--ink3)}
+.stat>span.v{font-size:20px;font-weight:700}
+.bar{height:5px;border-radius:3px;background:rgba(18,55,42,.1);overflow:hidden}
+.bar>i{display:block;height:5px;border-radius:3px;background:var(--brand2)}
+.jobrow{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:12px;background:rgba(18,55,42,.05);font-size:15px;font-weight:600}
+.minibtn{height:34px;padding:0 12px;border:0;border-radius:10px;background:var(--soft);font-size:13px;font-weight:600;color:var(--ink)}
+.minibtn.red{background:#FDECEA;color:var(--red)}
+.minibtn.go{background:var(--brand);color:#fff}
+
+#toolbar{left:max(50%,920px);bottom:16px;transform:translateX(-50%);padding:8px;display:flex;align-items:center;gap:4px}
+.tb{height:52px;padding:0 18px;border:0;border-radius:13px;background:transparent;display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600}
+.tb:hover{background:var(--soft)}
+.tb.primary{background:var(--brand);color:#fff}
+.tb.view[aria-pressed="true"]{background:#E3EEE6;color:var(--brand);box-shadow:inset 0 0 0 2px var(--brand)}
+.tbsep{width:1px;height:32px;background:rgba(18,55,42,.15);margin:0 8px}
+
+#labels{position:fixed;inset:0;pointer-events:none;z-index:5}
+.callout{position:absolute;width:176px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.94);box-shadow:0 8px 22px rgba(16,32,20,.22);display:flex;flex-direction:column;gap:6px;transform:translate(-50%,-100%);pointer-events:auto;cursor:pointer}
+.callout.stop{width:auto;flex-direction:row;align-items:center;gap:8px;white-space:nowrap;background:#fff;box-shadow:0 0 0 2px var(--red),0 8px 22px rgba(120,20,10,.25)}
+.callout .top{display:flex;align-items:center;gap:8px}
+.callout .name{font-size:15px;font-weight:700}
+.callout .pct{margin-left:auto;font-size:15px;font-weight:700}
+.callout .task{font-size:14px;color:var(--ink2)}
+.stopped{display:flex;align-items:center;gap:4px;font-size:13px;font-weight:700;color:#fff;background:var(--red);padding:3px 8px;border-radius:8px}
+.stem{position:absolute;width:2px;height:30px;background:#fff;transform:translateX(-50%)}
+
+#alert{left:50%;top:100px;transform:translateX(-50%);padding:12px 12px 12px 14px;display:none;align-items:center;gap:14px;background:rgba(255,255,255,.96);box-shadow:0 0 0 2px var(--red),0 10px 30px rgba(120,20,10,.22);z-index:11}
+#alert .ico{flex:none;width:44px;height:44px;border-radius:12px;background:var(--red);display:flex;align-items:center;justify-content:center}
+#alert b{display:block;font-family:'Space Grotesk',system-ui,sans-serif;font-size:19px;font-weight:700}
+#alert span{font-size:15px;color:var(--ink2)}
+#guide{left:50%;top:100px;transform:translateX(-50%);padding:12px 16px;display:none;align-items:center;gap:14px;z-index:11}
+#guide .step{display:flex;align-items:center;gap:10px;opacity:.5}
+#guide .step.now{opacity:1}
+#guide .n{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--ink3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+#guide .now .n{background:var(--brand);border-color:var(--brand);color:#fff}
+#guide .done .n{background:var(--ok-bg);border-color:var(--brand2);color:var(--brand2)}
+#guide b{display:block;font-size:14px}
+#guide small{font-size:12px;color:var(--ink3)}
+#banner{left:50%;top:92px;transform:translateX(-50%);padding:10px 16px;font-size:14px;font-weight:600;color:var(--red);display:none;z-index:30}
+
+.drawer{display:none;flex-direction:column;gap:14px;padding:20px;overflow:auto;z-index:15}
+.drawer.open{display:flex}
+#fieldPanel{left:16px;top:100px;bottom:16px;width:min(620px,calc(100vw - 32px))}
+#leaf{height:360px;min-height:280px;border-radius:12px}
+#fleetPanel{left:16px;top:100px;width:min(560px,calc(100vw - 32px))}
+.fcard{border-radius:14px;background:rgba(18,55,42,.04);padding:14px;display:flex;flex-direction:column;gap:12px}
+.inp{height:40px;border-radius:10px;border:1px solid rgba(18,55,42,.18);background:#fff;padding:0 10px;width:100%}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tgrid{display:grid;grid-template-columns:auto repeat(3,minmax(0,1fr));gap:8px;align-items:center;font-size:14px}
+#results button{display:block;background:none;border:0;color:var(--brand2);padding:3px 0;text-align:left;font-size:13px}
+
+#analytics{position:fixed;inset:0;display:none;z-index:14;background:rgba(141,184,107,.35);overflow:auto}
+#analytics.open{display:block}
+#anaWrap{max-width:1728px;margin:112px auto 24px;padding:0 24px;display:flex;flex-direction:column;gap:20px}
+.acard{position:static;padding:22px 28px}
+.atitle{font-family:'Space Grotesk',system-ui,sans-serif;font-size:34px;font-weight:700;margin:0}
+.score{width:100%;border-collapse:collapse;font-size:16px}
+.score th,.score td{padding:13px 10px;text-align:left;border-bottom:1px solid var(--line)}
+.score th{font-weight:600;color:var(--ink2)}
+.score td small{display:block;font-size:12px;color:var(--ink3)}
+.score td.best{font-weight:700;color:var(--brand2)}
+.big{font-family:'Space Grotesk',system-ui,sans-serif;font-size:46px;font-weight:700}
+.leaflet-container{background:#ddd}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<canvas id="scene" aria-label="Live 3D view of the farm and tractors"></canvas>
+<div id="labels"></div>
+
+<header class="card">
+  <div class="logo">
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#135C36" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21c.5-4.5 2.5-8 7-10"/><path d="M9 18c6.218 0 10.5-3.288 11-12v-2h-4.014c-9 0-11.986 4-12 9 0 1 0 3 2 5h3z"/></svg>
+    <span>SYNTERRA</span>
+  </div>
+  <nav aria-label="Main">
+    <button data-tab="sim" aria-current="page">Simulation</button>
+    <button data-tab="fleet">Fleet</button>
+    <button data-tab="field">Field</button>
+    <button data-tab="analytics">Analytics</button>
+  </nav>
+  <div class="hright">
+    <span class="num" id="clock" style="font-size:15px;font-weight:600;color:var(--ink2)">--</span>
+    <div class="stepper">
+      <button id="slower" aria-label="Slower" title="Slower"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+      <span class="num" id="rateLbl" style="min-width:44px;text-align:center;font-size:16px;font-weight:700">--</span>
+      <button id="faster" aria-label="Faster" title="Faster"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>
+    <button class="sqbtn" id="btnSettings" aria-label="Field setup" title="Field setup"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17201A" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></button>
+  </div>
+</header>
+
+<div id="banner" class="card" role="status"></div>
+
+<div id="guide" class="card" role="note" aria-label="Getting started">
+  <div class="step" id="g1"><span class="n">1</span><div><b>Pick a field</b><small>Open the Field tab</small></div></div>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5B665E" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+  <div class="step" id="g2"><span class="n">2</span><div><b>Press Run</b><small>Tractors share the work</small></div></div>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5B665E" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+  <div class="step" id="g3"><span class="n">3</span><div><b>Try a breakdown</b><small>Others take over</small></div></div>
+</div>
+
+<div id="alert" class="card" role="alert">
+  <span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 8v5M12 16.5h.01"/><circle cx="12" cy="12" r="9"/></svg></span>
+  <div><b id="alertTitle">-</b><span id="alertSub">-</span></div>
+  <button class="tb primary" id="alertShow" style="height:44px;margin-left:12px">Show me</button>
+</div>
+
+<section id="layers" class="card" aria-label="Map layers">
+  <h2 class="eyebrow" style="margin-bottom:4px">Show on map</h2>
+  <button class="tog" data-layer="zones" aria-pressed="true"><span style="flex:1">Field zones<small>Who works where</small></span><span class="sw" aria-hidden="true"></span></button>
+  <button class="tog" data-layer="cover" aria-pressed="true"><span style="flex:1">Coverage<small>Colored = done</small></span><span class="sw" aria-hidden="true"></span></button>
+  <button class="tog" data-layer="paths" aria-pressed="false"><span style="flex:1">Planned paths<small>Rows still to do</small></span><span class="sw" aria-hidden="true"></span></button>
+  <button class="tog" data-layer="labels" aria-pressed="true"><span style="flex:1">Tractor labels</span><span class="sw" aria-hidden="true"></span></button>
+</section>
+
+<section id="progress" class="card" aria-label="Progress">
+  <h2 class="eyebrow">Progress</h2>
+  <div style="display:flex;gap:18px;align-items:center">
+    <svg width="96" height="96" viewBox="0 0 96 96" role="img" aria-label="Progress" id="ring" style="flex:none"><circle cx="48" cy="48" r="38" fill="none" stroke="rgba(18,55,42,0.1)" stroke-width="10"/><circle id="ringArc" cx="48" cy="48" r="38" fill="none" stroke="#12372A" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 238.8" transform="rotate(-90 48 48)"/><text id="ringTxt" x="48" y="55" text-anchor="middle" font-size="22" font-weight="700" fill="#17201A" font-family="Space Grotesk, system-ui, sans-serif">0%</text></svg>
+    <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+      <div class="kv"><span>Area done</span><span class="num" id="pDone">-</span></div>
+      <div class="kv"><span>Rows left</span><span class="num" id="pRows">-</span></div>
+      <div class="kv"><span>Time left</span><span class="num" id="pLeft">-</span></div>
+    </div>
+  </div>
+  <div class="okbadge" id="pBadge"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span id="pBadgeTxt">No field yet</span></div>
+</section>
+
+<section id="decisions" class="card" aria-label="Latest decisions">
+  <h2 class="eyebrow">Latest decisions</h2>
+  <ul id="decList"><li><p style="color:var(--ink3)">Pick a field, then press Run.</p></li></ul>
+  <button class="linkbtn" id="seeAll">See all</button>
+</section>
+
+<section id="tractor" class="card" aria-label="Tractor">
+  <div style="display:flex;align-items:center;gap:14px">
+    <h2 class="eyebrow">Tractor</h2>
+    <div class="seg" id="pick" role="group" aria-label="Choose tractor"></div>
+  </div>
+  <div style="display:flex;gap:18px">
+    <div class="stat"><span>Fuel</span><span class="v num" id="tcFuel">-</span><div class="bar"><i id="tcFuelBar" style="width:0"></i></div></div>
+    <div class="stat"><span>Battery</span><span class="v num" id="tcBat">-</span><div class="bar"><i id="tcBatBar" style="width:0"></i></div></div>
+    <div class="stat"><span>Speed</span><span class="v num" id="tcSpeed">-</span></div>
+    <div class="stat"><span>Tool width</span><span class="v num" id="tcTool">-</span></div>
+  </div>
+  <div class="jobrow" id="tcJob">-</div>
+  <div class="row"><span style="font-size:13px;color:var(--ink3);margin-right:4px">Test a problem</span><button class="minibtn red" id="tcBreak" title="It stops where it is; the others take its rows">Break down</button><button class="minibtn red" id="tcEmpty" title="It drives home without finishing; the others take its rows">Empty fuel</button><button class="minibtn" id="tcRefill" title="Fill this tractor up with fuel" style="margin-left:auto">Refuel</button></div>
+</section>
+
+<div id="toolbar" class="card" role="toolbar" aria-label="Simulation and camera">
+  <button class="tb primary" id="btnRun" title="Start all tractors"><svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg><span id="runLbl">Run</span></button>
+  <button class="tb" id="btnPause" title="Pause or resume"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M9 5v14M15 5v14"/></svg><span id="pauseLbl">Pause</span></button>
+  <button class="tb" id="btnReset" title="Start the field again from zero"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>Reset</button>
+  <span class="tbsep" aria-hidden="true"></span>
+  <span style="font-size:13px;font-weight:600;color:var(--ink3);padding:0 4px">View</span>
+  <button class="tb view" data-view="orbit" aria-pressed="true" title="Drag to look around"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><ellipse cx="12" cy="12" rx="10" ry="5"/><circle cx="12" cy="12" r="2.5"/></svg>Orbit</button>
+  <button class="tb view" data-view="follow" aria-pressed="false" title="Ride behind the chosen tractor"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Follow</button>
+  <button class="tb view" data-view="top" aria-pressed="false" title="Look straight down"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2l9 5-9 5-9-5z"/><path d="M3 12l9 5 9-5"/></svg>Top</button>
+</div>
+
+<section id="fieldPanel" class="card drawer" aria-label="Field">
+  <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="atitle" style="font-size:24px">Field</h2><button class="minibtn" data-close>Close</button></div>
+  <form id="search" class="row"><label class="sr" for="q">Search a place</label><input class="inp" id="q" placeholder="Yuma, Arizona or 32.69, -114.63" style="flex:1"><button class="minibtn go" style="height:40px" type="submit">Search</button></form>
+  <div id="results"></div>
+  <div id="leaf"></div>
+  <div class="row">
+    <button class="minibtn" id="btnRect">Draw rectangle</button><button class="minibtn" id="btnPoly">Draw shape</button>
+    <button class="minibtn go" id="btnDemo">Use demo field</button>
+    <label class="minibtn" style="display:flex;align-items:center;cursor:pointer">Import KML<input type="file" id="kml" accept=".kml" class="sr"></label>
+    <button class="minibtn red" id="btnClear">Clear</button>
+  </div>
+  <div style="font-size:14px;color:var(--ink2)" id="fieldInfo">No field yet.</div>
+  <h3 class="eyebrow">Tractor setup</h3>
+  <label class="row" style="font-size:14px">Tool width (m)<input class="inp" id="inWidth" type="number" min="1" max="60" step="0.5" style="width:100px"></label>
+  <div class="tgrid" id="setupGrid"><span></span><span style="color:var(--ink3)">Fuel %</span><span style="color:var(--ink3)">Battery %</span><span style="color:var(--ink3)">Speed km/h</span></div>
+  <div style="font-size:13px;color:var(--ink3)">Changes apply next time you press Run or Reset.</div>
+</section>
+
+<section id="fleetPanel" class="card drawer" aria-label="Fleet">
+  <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="atitle" style="font-size:24px">Fleet</h2><button class="minibtn" data-close>Close</button></div>
+  <div id="fleetCards" style="display:flex;flex-direction:column;gap:12px"></div>
+</section>
+
+<div id="analytics" role="region" aria-label="Analytics">
+  <div id="anaWrap">
+    <div><h1 class="atitle">How SYNTERRA compares</h1><p style="margin:6px 0 0;font-size:17px;color:var(--ink2)">Same farm, same 10 jobs, three ways to plan.</p></div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap">
+      <section class="card acard" style="flex:2 1 760px" aria-label="Scoreboard"><h2 class="eyebrow" style="margin-bottom:8px">Scoreboard</h2><table class="score" id="score"><tr><td>Loading…</td></tr></table></section>
+      <div style="flex:1 1 300px;display:flex;flex-direction:column;gap:20px">
+        <section class="card acard" aria-label="Optimality"><h2 class="eyebrow">Optimality</h2><div class="big" id="optBig">-</div><div style="font-size:15px;color:var(--ink2)">plans matched the exact optimum</div></section>
+        <section class="card acard" aria-label="Stress test"><h2 class="eyebrow">Stress test</h2><div class="big" id="stressBig">-</div><div style="font-size:15px;color:var(--ink2)" id="stressSub">safety violations</div></section>
+      </div>
+    </div>
+    <section class="card acard" aria-label="Jobs completed over time"><h2 style="margin:0 0 10px;font-family:'Space Grotesk',system-ui,sans-serif;font-size:20px">Jobs completed over time</h2><div id="chart" style="font-size:14px;color:var(--ink3)">Loading…</div></section>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { Sky } from 'three/addons/objects/Sky.js';
+
+const $ = id => document.getElementById(id);
+const R = 6371008.8, RAD = Math.PI / 180;
+const ZONE = { 1: '#2F6FDB', 2: '#E07B12', 3: '#8E4FD0' };          // tractor / zone colours from the design
+const INK = { 1: '#1D4FA8', 2: '#A85808', 3: '#6631A3' };
+const BODY = { 1: 0x2F6FDB, 2: 0xE07B12, 3: 0x8E4FD0 };
+const LETTER = { 1: 'A', 2: 'B', 3: 'C' };
+const TRACTOR_SCALE = 2.2;
+let S = null, sel = 1, view = 'orbit';
+const LAYER = { zones: true, cover: true, paths: false, labels: true };
+
+async function api(action, body) {
+  try {
+    const r = await fetch('/api/' + action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+    if (!r.ok) { const j = await r.json().catch(() => ({})); flash(j.error || ('Request failed: ' + r.status)); }
+  } catch { flash('Cannot reach the coordinator.'); }
+}
+function flash(msg) { const b = $('banner'); b.textContent = msg; b.style.display = 'block'; clearTimeout(flash.t); flash.t = setTimeout(() => { b.style.display = 'none'; flash.t = 0; }, 4000); }
+
+// ------------------------------------------------------------------ renderer, sky, light
+const canvas = $('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.8;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0xc9dcea, 700, 3600);
+const camera = new THREE.PerspectiveCamera(45, 1, 1, 20000);
+camera.position.set(0, 260, 420);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.maxPolarAngle = Math.PI * 0.47; controls.minDistance = 40; controls.maxDistance = 2500;
+
+const sky = new Sky(); sky.scale.setScalar(10000); scene.add(sky);
+const sun = new THREE.Vector3().setFromSphericalCoords(1, (90 - 32) * RAD, 200 * RAD);
+Object.assign(sky.material.uniforms.turbidity, { value: 6 });
+sky.material.uniforms.rayleigh.value = 1.6; sky.material.uniforms.mieCoefficient.value = 0.004; sky.material.uniforms.mieDirectionalG.value = 0.8;
+sky.material.uniforms.sunPosition.value.copy(sun);
+scene.add(new THREE.HemisphereLight(0xdbe9ff, 0x4a5a2c, 0.9));
+const dir = new THREE.DirectionalLight(0xfff1d6, 2.4);
+dir.position.copy(sun).multiplyScalar(900); dir.castShadow = true;
+dir.shadow.mapSize.set(2048, 2048);
+Object.assign(dir.shadow.camera, { left: -500, right: 500, top: 500, bottom: -500, near: 10, far: 3000 });
+dir.shadow.bias = -0.0005;
+scene.add(dir, dir.target);
+
+// ------------------------------------------------------------------ procedural textures
+function canvasTex(w, h, draw, rep) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8; if (rep) t.repeat.set(rep, rep); return t;
+}
+function noise(g, w, h, base, spread, n) {
+  g.fillStyle = base; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < n; i++) { const v = (Math.random() - 0.5) * spread; g.fillStyle = `rgba(${v > 0 ? '255,255,220' : '0,0,0'},${Math.abs(v)})`; g.fillRect(Math.random() * w, Math.random() * h, 2, 2); }
+}
+const grassTex = canvasTex(256, 256, (g, w, h) => noise(g, w, h, '#6f8c43', 0.18, 9000), 500);
+const cropTex = canvasTex(256, 256, (g, w, h) => { noise(g, w, h, '#86a64a', 0.16, 6000); for (let x = 0; x < w; x += 16) { g.fillStyle = 'rgba(40,60,15,.45)'; g.fillRect(x, 0, 5, h); g.fillStyle = 'rgba(170,200,90,.25)'; g.fillRect(x + 8, 0, 3, h); } });
+const workTex = canvasTex(256, 256, (g, w, h) => { noise(g, w, h, '#5b4029', 0.2, 7000); for (let x = 0; x < w; x += 16) { g.fillStyle = 'rgba(30,18,8,.55)'; g.fillRect(x, 0, 6, h); g.fillStyle = 'rgba(150,110,70,.3)'; g.fillRect(x + 9, 0, 3, h); } });
+
+// ------------------------------------------------------------------ world: ground, mountains, trees, farm
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), new THREE.MeshStandardMaterial({ map: grassTex, roughness: 1 }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+
+const mountains = new THREE.Group(); scene.add(mountains);
+(function buildMountains() {
+  const rnd = mulberry(7);
+  for (let i = 0; i < 46; i++) {
+    const a = (i / 46) * Math.PI * 2 + rnd() * 0.1, dist = 2300 + rnd() * 900, r = 220 + rnd() * 380, hgt = 260 + rnd() * 520;
+    const geo = new THREE.ConeGeometry(r, hgt, 7 + Math.floor(rnd() * 4), 4);
+    const pos = geo.attributes.position, col = [];
+    for (let k = 0; k < pos.count; k++) {
+      const y = pos.getY(k); if (y < hgt / 2 - 1) { pos.setX(k, pos.getX(k) * (0.85 + rnd() * 0.3)); pos.setZ(k, pos.getZ(k) * (0.85 + rnd() * 0.3)); }
+      const t = (y + hgt / 2) / hgt; const snow = t > 0.72; col.push(...(snow ? [0.93, 0.95, 0.97] : [0.42 + t * 0.15, 0.48 + t * 0.12, 0.55 + t * 0.1]));
+    }
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.computeVertexNormals();
+    const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1 }));
+    m.position.set(Math.cos(a) * dist, hgt / 2 - 20, Math.sin(a) * dist); mountains.add(m);
+  }
+})();
+
+function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+let trees = null;
+function buildTrees(radius) {
+  if (trees) { scene.remove(trees); trees.children.forEach(c => c.geometry.dispose()); }
+  trees = new THREE.Group();
+  const rnd = mulberry(11), n = 520;
+  const crown = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, flatShading: true }), n);
+  const trunk = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.15, 0.22, 1, 6), new THREE.MeshStandardMaterial({ color: 0x5a4330 }), n);
+  crown.castShadow = trunk.castShadow = true;
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), c = new THREE.Color();
+  for (let i = 0; i < n; i++) {
+    let a = rnd() * Math.PI * 2, d = radius + 60 + Math.pow(rnd(), 0.7) * 1100;
+    if (i < 160) { a = (i / 160) * Math.PI * 2; d = radius + 70 + rnd() * 25; }      // a tree line around the field
+    const x = Math.cos(a) * d, z = Math.sin(a) * d, h = 8 + rnd() * 9, w = 4 + rnd() * 4;
+    s.set(w, h * 0.75, w); p.set(x, h * 0.55, z); m.compose(p, q, s); crown.setMatrixAt(i, m);
+    c.setHSL(0.23 + rnd() * 0.07, 0.42, 0.26 + rnd() * 0.12); crown.setColorAt(i, c);
+    s.set(1.2, h * 0.5, 1.2); p.set(x, h * 0.25, z); m.compose(p, q, s); trunk.setMatrixAt(i, m);
+  }
+  trees.add(crown, trunk); scene.add(trees);
+}
+
+const farm = new THREE.Group(); farm.position.set(320, 0, -160); farm.rotation.y = -0.4; scene.add(farm);
+let blades = null;
+(function buildFarm() {
+  const std = (c, r = 0.9) => new THREE.MeshStandardMaterial({ color: c, roughness: r });
+  const add = (geo, mat, x, y, z, ry = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.y = ry; m.castShadow = m.receiveShadow = true; farm.add(m); return m; };
+  const roofGeo = (w, d, h) => { const g = new THREE.BufferGeometry(); const v = [-w/2,0,-d/2, w/2,0,-d/2, 0,h,-d/2, -w/2,0,d/2, w/2,0,d/2, 0,h,d/2]; g.setAttribute('position', new THREE.Float32BufferAttribute(v, 3)); g.setIndex([0,2,1, 3,4,5, 0,3,5, 0,5,2, 1,2,5, 1,5,4, 0,1,4, 0,4,3]); g.computeVertexNormals(); return g; };
+  add(new THREE.BoxGeometry(36, 16, 22), std(0x9e3b2b), 0, 8, 0);
+  add(roofGeo(40, 24, 10), std(0x5c6066), 0, 16, 0);
+  add(new THREE.BoxGeometry(8, 9, 0.5), std(0xf1ece4), 0, 4.5, 11.2);
+  add(new THREE.BoxGeometry(28, 12, 18), std(0x8c3325), 34, 6, 6);
+  add(roofGeo(31, 20, 8), std(0x686c72), 34, 12, 6);
+  for (const [x, h] of [[-30, 34], [-42, 30]]) { add(new THREE.CylinderGeometry(5.5, 5.5, h, 24), std(0xc3c7cb, 0.5), x, h / 2, -4); add(new THREE.SphereGeometry(5.5, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), std(0xa5a9ad, 0.5), x, h, -4); }
+  add(new THREE.CylinderGeometry(0.9, 1.6, 70, 12), std(0xeef1f3, 0.4), -80, 35, -30);
+  blades = new THREE.Group(); blades.position.set(-80, 70, -28.5); farm.add(blades);
+  add(new THREE.SphereGeometry(1.8, 12, 12), std(0xdfe4e8, 0.4), -80, 70, -29);
+  for (let i = 0; i < 3; i++) { const b = new THREE.Mesh(new THREE.BoxGeometry(1.4, 30, 0.4), std(0xf2f4f5, 0.4)); b.geometry.translate(0, 15, 0); b.rotation.z = i * Math.PI * 2 / 3; b.castShadow = true; blades.add(b); }
+})();
+
+// ------------------------------------------------------------------ geo helpers (lat/lon -> local metres; north = -z)
+let O = null;
+const toXZ = (lat, lon) => [(lon - O.lon) * Math.cos(O.lat * RAD) * R * RAD, -(lat - O.lat) * R * RAD];
+
+// ------------------------------------------------------------------ field layers
+const fieldGroup = new THREE.Group(), zoneGroup = new THREE.Group(), coverGroup = new THREE.Group(), pathGroup = new THREE.Group();
+scene.add(fieldGroup, zoneGroup, coverGroup, pathGroup);
+let fieldKey = '', zoneKey = '', coverKey = '', fieldR = 200, fieldC = new THREE.Vector3(), passTheta = 0;
+
+function clearGroup(g) { while (g.children.length) { const c = g.children.pop(); c.geometry?.dispose(); if (c.material && !c.material.shared) c.material.dispose?.(); } }
+
+function quadGeo(quads, y, theta, texScale) {
+  const pos = [], uv = [], idx = []; let k = 0;
+  const ct = Math.cos(-theta), st = Math.sin(-theta);
+  for (const q of quads) {
+    for (const [x, z] of q) { pos.push(x, y, z); uv.push((x * ct - z * st) / texScale, (x * st + z * ct) / texScale); }
+    idx.push(k, k + 2, k + 1, k, k + 3, k + 2); k += 4;
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals(); return g;
+}
+
+function passQuad(p, w) {
+  const [ax, az] = toXZ(p.a[0], p.a[1]), [bx, bz] = toXZ(p.b[0], p.b[1]);
+  const dx = bx - ax, dz = bz - az, L = Math.hypot(dx, dz) || 1, nx = -dz / L * w / 2, nz = dx / L * w / 2;
+  return [[ax + nx, az + nz], [bx + nx, bz + nz], [bx - nx, bz - nz], [ax - nx, az - nz]];
+}
+
+function hull(pts) {
+  pts = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], up = [];
+  for (const p of pts) { while (lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+  for (const p of pts.reverse()) { while (up.length >= 2 && cross(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); }
+  return lo.slice(0, -1).concat(up.slice(0, -1));
+}
+
+function ribbon(loop, width, y, color, opacity) {
+  const quads = [];
+  for (let i = 0; i < loop.length; i++) {
+    const [ax, az] = loop[i], [bx, bz] = loop[(i + 1) % loop.length];
+    const dx = bx - ax, dz = bz - az, L = Math.hypot(dx, dz) || 1, nx = -dz / L * width / 2, nz = dx / L * width / 2;
+    quads.push([[ax + nx, az + nz], [bx + nx, bz + nz], [bx - nx, bz - nz], [ax - nx, az - nz]]);
+  }
+  const m = new THREE.Mesh(quadGeo(quads, y, 0, 10), new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+  m.renderOrder = 3; return m;
+}
+
+function rebuildField(s) {
+  const f = s.field;
+  clearGroup(fieldGroup); clearGroup(zoneGroup); clearGroup(coverGroup); clearGroup(pathGroup); zoneKey = coverKey = '';
+  if (!f) return;
+  let la = 0, lo = 0; f.ring.forEach(p => { la += p[0]; lo += p[1]; }); O = { lat: la / f.ring.length, lon: lo / f.ring.length };
+  const ring = f.ring.map(p => toXZ(p[0], p[1]));
+  fieldR = Math.max(...ring.map(([x, z]) => Math.hypot(x, z)));
+  if (s.passes.length) { const [ax, az] = toXZ(...s.passes[0].a), [bx, bz] = toXZ(...s.passes[0].b); passTheta = Math.atan2(bz - az, bx - ax); }
+  const shape = new THREE.Shape(ring.map(([x, z]) => new THREE.Vector2(x, -z)));
+  const geo = new THREE.ShapeGeometry(shape); geo.rotateX(-Math.PI / 2);
+  const pos = geo.attributes.position, uv = [], ct = Math.cos(-passTheta), st = Math.sin(-passTheta);
+  for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), z = pos.getZ(i); uv.push((x * ct - z * st) / 14, (x * st + z * ct) / 14); }
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: cropTex, roughness: 1 })); m.position.y = 0.15; m.receiveShadow = true; fieldGroup.add(m);
+  fieldGroup.add(ribbon(ring, 1.2, 0.35, 0xffffff, 0.55));
+  farm.position.set(fieldR + 90, 0, -fieldR * 0.6); farm.rotation.y = -0.4;
+  buildTrees(fieldR);
+  frameCamera(true);
+}
+
+function rebuildZones(s) {
+  clearGroup(zoneGroup); clearGroup(pathGroup);
+  const w = s.field.passWidth, by = {};
+  for (const p of s.passes) if (p.owner) (by[p.owner] = by[p.owner] || []).push(p);
+  for (const [owner, ps] of Object.entries(by)) {
+    const color = new THREE.Color(ZONE[owner]);
+    const tint = new THREE.Mesh(quadGeo(ps.map(p => passQuad(p, w)), 0.25, 0, 10), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.12, depthWrite: false, fog: false }));
+    zoneGroup.add(tint);
+    const loop = hull(ps.flatMap(p => passQuad(p, w)));
+    zoneGroup.add(ribbon(loop, 5, 0.42, color, 0.22), ribbon(loop, 1.6, 0.46, color, 0.95));
+    const open = ps.filter(p => !p.done);
+    if (open.length) {
+      const pts = []; open.forEach(p => { const a = toXZ(...p.a), b = toXZ(...p.b); pts.push(new THREE.Vector3(a[0], 0.6, a[1]), new THREE.Vector3(b[0], 0.6, b[1])); });
+      const line = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineDashedMaterial({ color, dashSize: 6, gapSize: 4, fog: false }));
+      line.computeLineDistances(); pathGroup.add(line);
+    }
+  }
+}
+
+const workMat = new THREE.MeshStandardMaterial({ map: workTex, roughness: 1 }); workMat.shared = true;
+function rebuildCover(s) {
+  clearGroup(coverGroup);
+  const by = {};
+  for (const sg of s.segments) (by[sg.tid] = by[sg.tid] || []).push(sg.poly.map(p => toXZ(p[0], p[1])));
+  for (const [tid, quads] of Object.entries(by)) {
+    const m = new THREE.Mesh(quadGeo(quads, 0.3, passTheta, 14), workMat); m.receiveShadow = true; coverGroup.add(m);
+    const glow = new THREE.Mesh(quadGeo(quads, 0.32, 0, 10), new THREE.MeshBasicMaterial({ color: ZONE[tid], transparent: true, opacity: 0.2, depthWrite: false, fog: false }));
+    coverGroup.add(glow);
+  }
+}
+
+// ------------------------------------------------------------------ tractors
+function makeTractor(id) {
+  const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
+  const paint = new THREE.MeshStandardMaterial({ color: BODY[id], roughness: 0.45, metalness: 0.2 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x1d1f22, roughness: 0.8 });
+  const rim = new THREE.MeshStandardMaterial({ color: 0xe5c84a, roughness: 0.5 });
+  const glass = new THREE.MeshStandardMaterial({ color: 0x9cc4e4, roughness: 0.1, metalness: 0.3, transparent: true, opacity: 0.6 });
+  const part = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; body.add(m); return m; };
+  part(new THREE.BoxGeometry(1.4, 1.1, 2.6), paint, 0, 1.4, -1.1);           // hood (front = -z)
+  part(new THREE.BoxGeometry(1.7, 0.9, 1.8), paint, 0, 1.2, 0.9);            // chassis under cab
+  part(new THREE.BoxGeometry(1.6, 1.5, 1.6), glass, 0, 2.45, 0.9);           // cab glass
+  part(new THREE.BoxGeometry(1.75, 0.15, 1.75), paint, 0, 3.25, 0.9);        // roof
+  part(new THREE.CylinderGeometry(0.09, 0.09, 1.2, 8), dark, 0.45, 2.4, -1.9); // exhaust
+  const wheels = [];
+  for (const [x, z, r, w] of [[-1.05, 0.9, 0.95, 0.6], [1.05, 0.9, 0.95, 0.6], [-0.85, -1.9, 0.55, 0.4], [0.85, -1.9, 0.55, 0.4]]) {
+    const wg = new THREE.Group(); wg.position.set(x, r, z);
+    const t = new THREE.Mesh(new THREE.CylinderGeometry(r, r, w, 20), dark); t.rotation.z = Math.PI / 2; t.castShadow = true;
+    const h = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.45, r * 0.45, w + 0.02, 12), rim); h.rotation.z = Math.PI / 2;
+    wg.add(t, h); body.add(wg); wheels.push([wg, r]);
+  }
+  const impl = new THREE.Group(); impl.position.set(0, 0.5, 2.6); g.add(impl);
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(1, 0.25, 0.4), new THREE.MeshStandardMaterial({ color: 0x2b3a52 })); bar.castShadow = true; impl.add(bar);
+  const tines = new THREE.InstancedMesh(new THREE.BoxGeometry(0.08, 0.6, 0.08), dark, 24); impl.add(tines);
+  body.scale.setScalar(TRACTOR_SCALE);
+  const ringM = new THREE.Mesh(new THREE.RingGeometry(9, 11, 40), new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false, fog: false }));
+  ringM.rotation.x = -Math.PI / 2; ringM.position.y = 0.6; ringM.visible = false; g.add(ringM);
+  const dust = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial({ color: 0xd8c6a6, size: 2.6, transparent: true, opacity: 0.55, depthWrite: false }));
+  const dp = new Float32Array(60 * 3); dust.geometry.setAttribute('position', new THREE.BufferAttribute(dp, 3)); scene.add(dust);
+  return { g, wheels, impl, bar, tines, ringM, dust, dp, life: new Float32Array(60), pos: new THREE.Vector3(), target: new THREE.Vector3(), yaw: 0, tyaw: 0, seen: false, implW: 0 };
+}
+const T = { 1: makeTractor(1), 2: makeTractor(2), 3: makeTractor(3) };
+Object.values(T).forEach(t => scene.add(t.g));
+
+function setImplement(t, w) {
+  if (Math.abs(t.implW - w) < 0.01) return; t.implW = w;
+  t.bar.scale.x = w; const m = new THREE.Matrix4();
+  for (let i = 0; i < 24; i++) { m.makeTranslation(-w / 2 + (i + 0.5) * w / 24, -0.35, 0); t.tines.setMatrixAt(i, m); }
+  t.tines.instanceMatrix.needsUpdate = true;
+}
+
+// ------------------------------------------------------------------ labels over the tractors
+const labelsEl = $('labels'), LBL = {};
+for (const id of [1, 2, 3]) {
+  const c = document.createElement('div'); c.className = 'callout'; c.addEventListener('click', () => pickTractor(id));
+  const stem = document.createElement('div'); stem.className = 'stem';
+  labelsEl.append(stem, c); LBL[id] = { c, stem };
+}
+const v3 = new THREE.Vector3();
+function placeLabels() {
+  const show = LAYER.labels && S && !document.body.classList.contains('ana');
+  for (const id of [1, 2, 3]) {
+    const L = LBL[id], t = T[id], d = S && S.tractors.find(x => x.id === id);
+    v3.copy(t.pos); v3.y += 9; v3.project(camera);
+    const on = show && t.seen && d && v3.z < 1 && Math.abs(v3.x) < 1.1 && Math.abs(v3.y) < 1.1;
+    L.c.style.display = L.stem.style.display = on ? '' : 'none';
+    if (!on) continue;
+    const x = (v3.x + 1) / 2 * innerWidth, y = (1 - v3.y) / 2 * innerHeight;
+    L.stem.style.left = x + 'px'; L.stem.style.top = (y - 30) + 'px';
+    L.c.style.left = x + 'px'; L.c.style.top = (y - 30) + 'px';
+  }
+}
+const STATUS = { working: 'Working', transit: 'On the way', idle: 'Waiting', done: 'Finished', broken: 'Stopped', returning: 'Going home', home: 'At home' };
+function tractorPct(d) { const tot = d.workedM + d.leftM; return tot > 0 ? Math.round(100 * d.workedM / tot) : 0; }
+function setLabel(d) {
+  const L = LBL[d.id], bad = d.broken || !d.contact;
+  L.stem.style.background = bad ? 'var(--red)' : '#fff';
+  if (bad) {
+    L.c.className = 'callout stop';
+    const homeward = d.state === 'returning' || d.state === 'home';
+    L.c.innerHTML = `<span class="dot" style="background:${ZONE[d.id]}"></span><span class="name">Tractor ${LETTER[d.id]}</span><span class="stopped" style="${homeward ? 'background:#B45309' : ''}">${!d.contact ? 'No signal' : homeward ? (d.state === 'home' ? 'At home · no fuel' : 'Going home · no fuel') : 'Stopped'}</span>`;
+  } else {
+    const p = tractorPct(d);
+    L.c.className = 'callout';
+    L.c.innerHTML = `<div class="top"><span class="dot" style="background:${ZONE[d.id]}"></span><span class="name">Tractor ${LETTER[d.id]}</span><span class="pct num" style="color:${INK[d.id]}">${p}%</span></div><span class="task">${STATUS[d.state] || d.state}</span><div class="bar"><i style="width:${p}%;background:${ZONE[d.id]}"></i></div>`;
+  }
+}
+
+// ------------------------------------------------------------------ camera modes
+function frameCamera(force) {
+  if (!O) return;
+  fieldC.set(0, 0, 0);
+  if (view === 'orbit' && force) { controls.target.copy(fieldC); camera.position.set(fieldR * 0.15, fieldR * 1.0, fieldR * 1.75); }
+  if (view === 'top') { controls.target.copy(fieldC); camera.position.set(0.01, fieldR * 2.8, 0.01); }
+  dir.target.position.copy(fieldC); dir.position.copy(sun).multiplyScalar(900);
+  const sz = Math.max(300, fieldR * 1.4); Object.assign(dir.shadow.camera, { left: -sz, right: sz, top: sz, bottom: -sz }); dir.shadow.camera.updateProjectionMatrix();
+}
+document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => {
+  view = b.dataset.view; document.querySelectorAll('[data-view]').forEach(x => x.setAttribute('aria-pressed', x === b));
+  controls.enableRotate = view !== 'top'; frameCamera(true);
+});
+
+// ------------------------------------------------------------------ animation loop
+const clock3 = new THREE.Clock();
+const fwd = new THREE.Vector3();
+function animate() {
+  const dt = Math.min(0.1, clock3.getDelta());
+  if (blades) blades.rotation.z += dt * 0.8;
+  for (const id of [1, 2, 3]) {
+    const t = T[id], d = S && S.tractors.find(x => x.id === id);
+    t.pos.lerp(t.target, Math.min(1, dt * 6));
+    let dy = t.tyaw - t.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); t.yaw += dy * Math.min(1, dt * 6);
+    t.g.position.copy(t.pos); t.g.rotation.y = t.yaw;
+    const moving = d && d.speed > 0.2 && !d.broken;
+    if (moving) t.wheels.forEach(([w, r]) => w.rotation.x -= dt * d.speed / (r * TRACTOR_SCALE) * Math.min(S.rate, 30));
+    t.ringM.visible = !!(d && (d.broken || !d.contact)); if (t.ringM.visible) t.ringM.material.opacity = 0.45 + 0.4 * Math.sin(performance.now() / 250);
+    const working = d && d.state === 'working' && moving;
+    fwd.set(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), t.yaw);
+    for (let i = 0; i < 60; i++) {
+      t.life[i] -= dt;
+      if (t.life[i] <= 0 && working && Math.random() < 0.5) { t.life[i] = 1.2 + Math.random(); t.dp[i*3] = t.pos.x + fwd.x * 6 + (Math.random() - .5) * t.implW; t.dp[i*3+1] = 0.8; t.dp[i*3+2] = t.pos.z + fwd.z * 6 + (Math.random() - .5) * 3; }
+      if (t.life[i] > 0) { t.dp[i*3+1] += dt * 1.6; } else t.dp[i*3+1] = -50;
+    }
+    t.dust.geometry.attributes.position.needsUpdate = true;
+  }
+  if (view === 'follow') {
+    const t = T[sel]; if (t.seen) {
+      const back = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), t.yaw);
+      const want = t.pos.clone().addScaledVector(back, 45).add(new THREE.Vector3(0, 24, 0));
+      camera.position.lerp(want, Math.min(1, dt * 2.5)); controls.target.lerp(t.pos, Math.min(1, dt * 4));
+    }
+  }
+  controls.update();
+  renderer.render(scene, camera);
+  placeLabels();
+  requestAnimationFrame(animate);
+}
+function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize(); requestAnimationFrame(animate);
+
+// ------------------------------------------------------------------ live panels
+function hhmm(s) { return String(Math.floor(s / 3600)).padStart(2, '0') + ':' + String(Math.floor(s % 3600 / 60)).padStart(2, '0'); }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function plain(t) {                       // keep the coordinator's message, drop the technical bits
+  t = t.replace(/Tractor ([123])/g, (m, d) => 'Tractor ' + LETTER[d]);
+  t = t.replace(/^Recovery agent:\s*(Tractor [ABC]) ([^.]*?)\. Pricing its (\d+) unfinished pass(?:es)?.*$/i, '$1 $2. Sharing its $3 unfinished rows with the others.');
+  return t.replace(/\s*\((?:[^()]*\bcost\b[^()]*)\)/gi, '').replace(/\bTotal cost [\d.]+[^.]*\.?/gi, '')
+    .replace(/\bin \d+ Hungarian rounds?\b/gi, '').replace(/\bHungarian\b/gi, 'best-match').replace(/Recovery agent:\s*/i, '')
+    .replace(/\bpasses\b/g, 'rows').replace(/\bpass\b/g, 'row').replace(/\s{2,}/g, ' ').replace(/\s+\./g, '.').trim();
+}
+const isBad = (k, t) => /bad|warn|fault|alert|error|event/.test(k) || /broke|fail|no signal|out of|empty|stopped/i.test(t);
+const tractorIn = t => { const m = t.match(/Tractor ([ABC])/); return m ? { A: 1, B: 2, C: 3 }[m[1]] : 0; };
+const RATES = [1, 2, 5, 10, 20, 50, 100, 200];
+let feedSig = '', seeAll = false, setupSet = false;
+
+function renderPanels(s) {
+  $('clock').textContent = `${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · ${hhmm(s.simTime)}`;
+  $('rateLbl').textContent = s.rate + 'x';
+  const nogps = s.tractors.filter(t => !t.gps).map(t => 'Tractor ' + LETTER[t.id]);
+  if (nogps.length) { $('banner').textContent = `No GPS from ${nogps.join(', ')}. Is the tractor simulator running?`; $('banner').style.display = 'block'; }
+  else if (!flash.t) $('banner').style.display = 'none';
+
+  // getting started vs problem alert
+  const broken = s.tractors.find(t => t.broken);
+  const r = s.recovery;
+  if (broken && r) {
+    const takers = [...new Set((r.assignments || []).map(a => plain(a.to)))];
+    $('alertTitle').textContent = `${plain(r.faulty)} ${r.reason || 'stopped'}`;
+    const home = broken.state === 'returning' ? 'Driving home · ' : broken.state === 'home' ? 'Back home · ' : '';
+    $('alertSub').textContent = home + (takers.length ? `${takers.join(' and ')} ${takers.length > 1 ? 'take' : 'takes'} over · finished rows kept` : 'finished rows kept · waiting for a free tractor');
+    $('alert').style.display = 'flex'; $('guide').style.display = 'none';
+  } else {
+    $('alert').style.display = 'none';
+    const step = !s.field ? 1 : !s.started ? 2 : (r ? 4 : 3);
+    [1, 2, 3].forEach(i => $('g' + i).className = 'step ' + (i < step ? 'done' : i === step ? 'now' : ''));
+    $('guide').style.display = step >= 4 || s.finished || document.body.classList.contains('ana') ? 'none' : 'flex';
+  }
+
+  $('runLbl').textContent = s.finished ? 'Run again' : s.running ? 'Running' : 'Run';
+  $('pauseLbl').textContent = s.started && !s.running && !s.finished ? 'Resume' : 'Pause';
+
+  // progress card
+  const pct = Math.round(s.pct);
+  $('ringArc').setAttribute('stroke-dasharray', `${(2.388 * pct).toFixed(1)} 238.8`); $('ringTxt').textContent = pct + '%';
+  $('pDone').textContent = s.totalHa ? `${s.workedHa.toFixed(1)} / ${s.totalHa.toFixed(1)} ha` : '-';
+  $('pRows').textContent = s.field ? s.tractors.reduce((a, t) => a + t.passesLeft, 0) : '-';
+  const live = s.tractors.filter(t => !t.broken && t.speedSet > 0);
+  const leftS = live.length ? Math.max(...live.map(t => t.leftM / (t.speedSet / 3.6))) : 0;
+  $('pLeft').textContent = s.finished ? 'Done' : s.started && leftS ? Math.max(1, Math.ceil(leftS / 60 / Math.max(1, s.rate))) + ' min' : '-';
+  $('pBadgeTxt').textContent = s.finished ? 'Field finished' : s.running ? `Plan ${s.planId} · running` : s.started ? 'Paused' : s.field ? 'Ready to run' : 'No field yet';
+
+  // latest decisions
+  const log = s.log.filter(e => !/^\s*(Recovery agent:\s*)?Pass \d+/i.test(e.text));
+  const items = log.slice(seeAll ? -12 : -3).reverse();
+  const sig = s.logCount + ':' + seeAll;
+  if (sig !== feedSig) {
+    feedSig = sig;
+    $('decList').innerHTML = items.length ? items.map((e, i) => {
+      const txt = plain(e.text), who = tractorIn(txt), bad = isBad(e.kind || '', e.text);
+      if (i === 0 && bad) return `<li class="hot"><span style="flex:none;width:30px;height:30px;border-radius:9px;background:var(--red);display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M12 7v6M12 17h.01"/></svg></span><div style="display:flex;flex-direction:column;gap:4px"><span style="display:flex;align-items:center;gap:8px"><span class="num" style="font-size:14px;font-weight:700">${hhmm(e.t)}</span><span class="newtag">New</span></span><p>${esc(txt)}</p></div></li>`;
+      return `<li><span class="when num"><span class="dot" style="width:9px;height:9px;background:${who ? ZONE[who] : '#12372A'}"></span>${hhmm(e.t)}</span><p>${esc(txt)}</p></li>`;
+    }).join('') : `<li><p style="color:var(--ink3)">${s.field ? 'Press Run to start the tractors.' : 'Pick a field, then press Run.'}</p></li>`;
+    $('seeAll').textContent = seeAll ? 'Show less' : 'See all';
+    $('seeAll').style.display = log.length > 3 ? '' : 'none';
+  }
+
+  // tractor card
+  const d = s.tractors.find(t => t.id === sel);
+  if (d) {
+    $('tcFuel').textContent = d.fuelPct.toFixed(0) + '%'; $('tcFuelBar').style.width = d.fuelPct + '%';
+    $('tcBat').textContent = d.batteryPct.toFixed(0) + '%'; $('tcBatBar').style.width = d.batteryPct + '%';
+    $('tcSpeed').textContent = d.speedSet.toFixed(1) + ' km/h';
+    $('tcTool').textContent = (s.field ? s.field.passWidth : s.width).toFixed(0) + ' m';
+    $('tcBreak').textContent = d.broken ? 'Repair' : 'Break down';
+    $('tcBreak').className = 'minibtn ' + (d.broken ? 'go' : 'red');
+    $('tcEmpty').style.display = d.broken ? 'none' : '';
+    const good = !d.broken && d.contact;
+    $('tcJob').style.background = good ? 'rgba(18,55,42,.05)' : '#FDECEA';
+    $('tcJob').innerHTML = `<span>${STATUS[d.state] || d.state}</span><span style="font-weight:400;color:var(--ink2)">· ${d.passesLeft} rows left</span>` +
+      `<span style="margin-left:auto;display:flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:${good ? 'var(--brand2)' : 'var(--red)'}">${good ? (d.state === 'done' ? 'Finished' : 'On track') : esc(d.reason ? plain(d.reason) : 'Stopped')}</span>`;
+  }
+
+  if ($('fleetPanel').classList.contains('open')) renderFleet(s);
+  if ($('fieldPanel').classList.contains('open')) renderField(s);
+}
+
+function renderFleet(s) {
+  $('fleetCards').innerHTML = s.tractors.map(t => `
+    <div class="fcard" style="${t.broken ? 'background:#FDECEA' : ''}">
+      <div style="display:flex;align-items:center;gap:10px"><span class="dot" style="background:${ZONE[t.id]}"></span><b style="font-size:16px">Tractor ${LETTER[t.id]}</b>
+        <span style="font-size:14px;color:${t.broken ? 'var(--red)' : 'var(--ink2)'}">${STATUS[t.state] || esc(t.state)}${t.contact ? '' : ' · no signal'}</span>
+        <div class="row" style="margin-left:auto"><button class="minibtn ${t.broken ? 'go' : 'red'}" data-act="${t.broken ? 'repair' : 'breakdown'}" data-id="${t.id}">${t.broken ? 'Repair' : 'Break down'}</button><button class="minibtn" data-act="refill" data-id="${t.id}">Refuel</button></div></div>
+      <div style="display:flex;gap:18px">
+        <div class="stat"><span>Fuel</span><span class="v num" style="font-size:18px">${t.fuelPct.toFixed(0)}%</span><div class="bar"><i style="width:${t.fuelPct}%"></i></div></div>
+        <div class="stat"><span>Battery</span><span class="v num" style="font-size:18px">${t.batteryPct.toFixed(0)}%</span><div class="bar"><i style="width:${t.batteryPct}%"></i></div></div>
+        <div class="stat"><span>Area done</span><span class="v num" style="font-size:18px">${t.workedHa.toFixed(1)} ha</span></div>
+        <div class="stat"><span>Rows left</span><span class="v num" style="font-size:18px">${t.passesLeft}</span></div>
+      </div>
+    </div>`).join('');
+}
+$('fleetCards').addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b) api(b.dataset.act, { id: +b.dataset.id }); });
+
+// ------------------------------------------------------------------ analytics
+let anaLoaded = false;
+async function loadAnalytics() {
+  if (anaLoaded) return; anaLoaded = true;
+  const get = n => fetch('/synterra/' + n).then(r => r.ok ? r.json() : null).catch(() => null);
+  const [cmp, opt, adv, tl] = await Promise.all([get('comparison'), get('optimality'), get('adversarial'), get('timeline')]);
+  if (cmp && cmp.results) {
+    const B = cmp.results, cols = [['smart', 'SYNTERRA'], ['fcfs', 'First come, first served'], ['nearest', 'Nearest tractor']];
+    const rows = [['Jobs on time', 'jobs_on_time', 'hi'], ['Travel (min)', 'travel_minutes', 'lo'], ['Distance (km)', 'distance_km', 'lo'], ['All work done after (min)', 'makespan_minutes', 'lo'], ['Rule violations', 'audit_violations', 'lo']];
+    const tick = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#135C36" stroke-width="3" stroke-linecap="round" style="vertical-align:-3px;margin-right:6px"><path d="M20 6L9 17l-5-5"/></svg>';
+    $('score').innerHTML = `<tr><th></th>${cols.map(c => `<th>${c[1]}</th>`).join('')}</tr>` + rows.map(([n, k, dir]) => {
+      const v = cols.map(c => B[c[0]][k]), best = dir === 'hi' ? Math.max(...v) : Math.min(...v);
+      return `<tr><td>${n}<small>${dir === 'hi' ? 'more is better' : 'less is better'}</small></td>${v.map(x => `<td class="num ${x === best ? 'best' : ''}" style="font-size:20px">${x === best ? tick : ''}${+(+x).toFixed(1)}</td>`).join('')}</tr>`;
+    }).join('');
+  } else $('score').innerHTML = '<tr><td>No comparison results found yet.</td></tr>';
+  $('optBig').textContent = opt && opt.summary ? `${opt.summary.goals_optimal}/${opt.summary.instances}` : '-';
+  if (adv && adv.totals && adv.totals.smart) { $('stressBig').textContent = `${adv.scenarios} farms`; $('stressSub').textContent = `${adv.totals.smart.violations} safety violations`; }
+  drawChart(tl);
+}
+function drawChart(tl) {
+  if (!tl || !tl.frames) { $('chart').textContent = 'No timeline found yet.'; return; }
+  const series = [['SYNTERRA', tl.frames, '#12372A'], ['First come, first served', tl.baseline_frames || [], '#E07B12']];
+  const total = Object.keys(tl.frames[0].jobs).length;
+  const W = 1600, H = 236, x0 = 44, x1 = 1440, y0 = 202, y1 = 14;
+  const tmax = Math.max(...series.map(s => s[1].length ? s[1][s[1].length - 1].t : 0), 60);
+  const X = t => x0 + (x1 - x0) * t / tmax, Y = n => y0 - (y0 - y1) * n / total;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Jobs completed over time">`;
+  for (const n of [0, Math.round(total / 2), total]) svg += `<line x1="${x0}" x2="${x1}" y1="${Y(n)}" y2="${Y(n)}" stroke="rgba(18,55,42,0.1)"/><text x="${x0 - 12}" y="${Y(n) + 4}" text-anchor="end" font-size="13" fill="#5B665E">${n}</text>`;
+  for (let t = 0; t <= tmax; t += 100) svg += `<text x="${X(t)}" y="228" text-anchor="middle" font-size="13" fill="#5B665E">${t}${t + 100 > tmax ? ' min' : ''}</text>`;
+  series.forEach(([name, fr, col], i) => {
+    let pts = [], last = -1;
+    for (const f of fr) { const n = Object.values(f.jobs).filter(j => j.status === 'COMPLETED').length; if (n !== last) { if (pts.length) pts.push(`${X(f.t).toFixed(1)},${Y(last).toFixed(1)}`); pts.push(`${X(f.t).toFixed(1)},${Y(n).toFixed(1)}`); last = n; } }
+    if (fr.length) pts.push(`${X(fr[fr.length - 1].t).toFixed(1)},${Y(last).toFixed(1)}`);
+    svg += `<polyline points="${pts.join(' ')}" fill="none" stroke="${col}" stroke-width="3.5" stroke-linejoin="round"/>`;
+    svg += `<circle cx="${x1 + 24}" cy="${60 + i * 30}" r="6" fill="${col}"/><text x="${x1 + 38}" y="${65 + i * 30}" font-size="14" fill="#17201A">${name}</text>`;
+  });
+  $('chart').innerHTML = svg + '</svg>';
+}
+
+// ------------------------------------------------------------------ field tab (Leaflet)
+let map = null, drawer = null, gField = null, fieldDrawnKey = '';
+function ensureMap() {
+  if (map) { setTimeout(() => map.invalidateSize(), 50); return; }
+  const c = S && S.tractors.find(t => t.lat != null);
+  map = L.map('leaf').setView(c ? [c.lat, c.lon] : [32.6927, -114.6277], 16);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Imagery © Esri, Maxar, Earthstar Geographics' }).addTo(map);
+  gField = L.layerGroup().addTo(map);
+  map.on(L.Draw.Event.CREATED, e => { drawer = null; api('field', { ring: e.layer.getLatLngs()[0].map(p => [p.lat, p.lng]) }); });
+  map.on('draw:drawstop', () => { drawer = null; });
+  setTimeout(() => map.invalidateSize(), 50);
+}
+function startDraw(kind) {
+  ensureMap(); if (drawer) drawer.disable();
+  const style = { color: '#12372A', weight: 2 };
+  drawer = kind === 'rect' ? new L.Draw.Rectangle(map, { shapeOptions: style, showArea: false }) : new L.Draw.Polygon(map, { shapeOptions: style, showArea: false, allowIntersection: false });
+  drawer.enable();
+}
+function renderField(s) {
+  if (!map) return;
+  const key = s.fieldId + ':' + s.planId;
+  if (key !== fieldDrawnKey) {
+    fieldDrawnKey = key; gField.clearLayers();
+    if (s.field) { L.polygon(s.field.ring, { color: '#fff', weight: 2, fill: false, dashArray: '6 5' }).addTo(gField); s.passes.forEach(p => L.polyline([p.a, p.b], { color: ZONE[p.owner] || '#999', weight: 2, opacity: 0.85 }).addTo(gField)); }
+  }
+  $('fieldInfo').innerHTML = s.field ? `<b>${s.field.areaHa.toFixed(1)} ha</b> · ${s.passes.length} rows` : 'No field yet.';
+  if (!setupSet) {
+    setupSet = true; $('inWidth').value = s.width;
+    $('setupGrid').insertAdjacentHTML('beforeend', s.tractors.map(t => `<span style="display:flex;align-items:center;gap:6px"><span class="dot" style="background:${ZONE[t.id]}"></span>Tractor ${LETTER[t.id]}</span>` + [['fuel', t.initFuel, 0, 100], ['battery', t.initBattery, 0, 100], ['speed', t.speedSet, 1, 30]].map(([k, v, a, b]) => `<input class="inp" type="number" data-tid="${t.id}" data-key="${k}" min="${a}" max="${b}" value="${v}" aria-label="Tractor ${LETTER[t.id]} ${k}">`).join('')).join(''));
+  }
+}
+$('setupGrid').addEventListener('change', e => { const i = e.target; if (!i.dataset.key) return; i.value = Math.max(+i.min, Math.min(+i.max, +i.value || 0)); api('tractor', { id: +i.dataset.tid, [i.dataset.key]: +i.value }); });
+$('inWidth').onchange = () => api('config', { width: +$('inWidth').value });
+$('btnRect').onclick = () => startDraw('rect');
+$('btnPoly').onclick = () => startDraw('poly');
+$('btnDemo').onclick = () => { ensureMap(); const c = map.getCenter(), k = RAD * R, dLat = 150 / k, dLon = 150 / (k * Math.cos(c.lat * RAD)); api('field', { ring: [[c.lat - dLat, c.lng - dLon], [c.lat - dLat, c.lng + dLon], [c.lat + dLat, c.lng + dLon], [c.lat + dLat, c.lng - dLon]] }); };
+$('btnClear').onclick = () => api('clear');
+$('kml').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const doc = new DOMParser().parseFromString(await f.text(), 'text/xml'), node = doc.querySelector('Polygon coordinates, LinearRing coordinates, coordinates');
+    if (!node) return flash('No field shape found in that KML file.');
+    api('field', { ring: node.textContent.trim().split(/\s+/).map(s => s.split(',').map(Number)).filter(c => c.length >= 2 && isFinite(c[0]) && isFinite(c[1])).map(c => [c[1], c[0]]) });
+  } catch { flash('Could not read that KML file.'); } finally { e.target.value = ''; }
+};
+$('search').onsubmit = async e => {
+  e.preventDefault(); ensureMap();
+  const q = $('q').value.trim(); if (!q) return;
+  const m = q.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)\s*$/);
+  if (m) { map.setView([+m[1], +m[2]], 17); $('results').textContent = ''; return; }
+  $('results').textContent = 'Searching…';
+  try {
+    const items = await (await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=' + encodeURIComponent(q))).json();
+    if (!items.length) { $('results').textContent = 'No place found.'; return; }
+    map.setView([+items[0].lat, +items[0].lon], 16);
+    $('results').innerHTML = items.length > 1 ? items.slice(1).map(it => `<button data-ll="${it.lat},${it.lon}">${esc(it.display_name)}</button>`).join('') : '';
+  } catch { $('results').textContent = 'Search is unavailable. Type coordinates as lat, lon.'; }
+};
+$('results').addEventListener('click', e => { const b = e.target.closest('[data-ll]'); if (b) { const [a, o] = b.dataset.ll.split(','); map.setView([+a, +o], 16); } });
+
+// ------------------------------------------------------------------ tabs and controls
+function openTab(tab) {
+  document.querySelectorAll('nav button').forEach(b => b.dataset.tab === tab ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
+  $('fieldPanel').classList.toggle('open', tab === 'field');
+  $('fleetPanel').classList.toggle('open', tab === 'fleet');
+  $('analytics').classList.toggle('open', tab === 'analytics');
+  document.body.classList.toggle('ana', tab === 'analytics');
+  const hide = { layers: tab !== 'sim', tractor: tab !== 'sim', progress: tab === 'analytics', decisions: tab === 'analytics', toolbar: tab === 'analytics' };
+  for (const [id, h] of Object.entries(hide)) $(id).style.display = h ? 'none' : '';
+  if (tab === 'field') ensureMap();
+  if (tab === 'analytics') loadAnalytics();
+  if (S) renderPanels(S);
+}
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => openTab(b.dataset.tab));
+document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => openTab('sim'));
+$('btnSettings').onclick = () => openTab('field');
+$('btnRun').onclick = () => S && !S.field ? (openTab('field'), flash('Pick a field first.')) : api('start');
+$('btnPause').onclick = () => api('pause');
+$('btnReset').onclick = () => api('reset');
+$('alertShow').onclick = () => { const r = S && S.recovery; const to = r && r.assignments && r.assignments[0] && r.assignments[0].to; const m = to && to.match(/(\d)/); if (m) pickTractor(+m[1]); document.querySelector('[data-view="follow"]').click(); };
+$('slower').onclick = () => { if (!S) return; const i = RATES.findIndex(r => r >= S.rate); api('config', { rate: RATES[Math.max(0, (i < 0 ? RATES.length : i) - 1)] }); };
+$('faster').onclick = () => { if (!S) return; const i = RATES.findIndex(r => r > S.rate); api('config', { rate: RATES[i < 0 ? RATES.length - 1 : i] }); };
+$('seeAll').onclick = () => { seeAll = !seeAll; if (S) renderPanels(S); };
+$('pick').innerHTML = [1, 2, 3].map(id => `<button aria-pressed="${id === sel}" data-pick="${id}"><span class="dot" style="background:${ZONE[id]}"></span>${LETTER[id]}</button>`).join('');
+$('pick').addEventListener('click', e => { const b = e.target.closest('[data-pick]'); if (b) pickTractor(+b.dataset.pick); });
+function pickTractor(id) { sel = id; document.querySelectorAll('[data-pick]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.pick === id)); if (S) renderPanels(S); }
+$('tcBreak').onclick = () => { const d = S && S.tractors.find(t => t.id === sel); if (d) api(d.broken ? 'repair' : 'breakdown', { id: sel }); };
+$('tcRefill').onclick = () => api('refill', { id: sel });
+$('tcEmpty').onclick = () => { if (S && !S.started) { flash('Press Run first, then try Empty fuel.'); return; } api('tractor', { id: sel, fuel: 0 }); };
+document.querySelectorAll('[data-layer]').forEach(b => b.onclick = () => {
+  const k = b.dataset.layer; LAYER[k] = !LAYER[k]; b.setAttribute('aria-pressed', LAYER[k]); applyLayers();
+});
+function applyLayers() { zoneGroup.visible = LAYER.zones; coverGroup.visible = LAYER.cover; pathGroup.visible = LAYER.paths; }
+applyLayers();
+
+async function poll() {
+  try {
+    const s = await (await fetch('/state', { cache: 'no-store' })).json(); S = s;
+    if (!O) { const t = s.tractors.find(x => x.lat != null); if (t) { O = { lat: t.lat, lon: t.lon }; buildTrees(200); frameCamera(true); } }
+    const fk = s.fieldId + '|' + (s.field ? s.field.ring.length + ':' + s.field.ring[0] : 'none');
+    if (fk !== fieldKey) { fieldKey = fk; rebuildField(s); if (!s.field) { const t = s.tractors.find(x => x.lat != null); if (t) O = { lat: t.lat, lon: t.lon }; } }
+    if (s.field) {
+      const zk = s.planId + '|' + s.passes.map(p => p.owner + (p.done ? 'd' : '')).join('');
+      if (zk !== zoneKey) { zoneKey = zk; rebuildZones(s); }
+      const ck = s.segments.length + '|' + s.segments.map(x => x.live ? x.poly[1].join() : x.id).slice(-6).join();
+      if (ck !== coverKey) { coverKey = ck; rebuildCover(s); }
+    }
+    for (const d of s.tractors) {
+      const t = T[d.id]; setImplement(t, s.field ? s.field.passWidth : s.width);
+      if (d.lat == null || !O) continue;
+      const [x, z] = toXZ(d.lat, d.lon); t.target.set(x, 0, z);
+      t.tyaw = -d.heading * RAD; if (!t.seen) { t.pos.copy(t.target); t.yaw = t.tyaw; t.seen = true; }
+      setLabel(d);
+    }
+    renderPanels(s);
+  } catch (e) { flash('Cannot reach the coordinator.'); }
+  setTimeout(poll, 250);
+}
+poll();
+</script>
+</body>
+</html>

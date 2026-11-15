@@ -85,6 +85,7 @@ class Tractor:
         self.prev = None
         self.last_cmd = 0.0
         self.warned = set()       # low-level warnings already logged this run
+        self.home = None          # (u, v) where it waited before work started; it drives back here when out of fuel
 
     def in_contact(self, now):
         return self.reports > 0 and now - self.last_report <= CONTACT_TIMEOUT_S
@@ -316,6 +317,7 @@ class Fleet:
             if mine:
                 first = min(mine, key=lambda p: p.v)
                 t.u, t.v = first.a - 10, first.v
+            t.home = (t.u, t.v)
             t.prev = None
             lat, lon = self.to_ll(t.u, t.v)
             self.send("place %d %.9f %.9f %.1f" % (t.id, lat, lon, heading))
@@ -406,6 +408,16 @@ class Fleet:
         loaded into the agent now if work has not started, otherwise at the next Reset/Restart."""
         with self.lock:
             t = self.tractors[tid - 1]
+            if fuel is not None and self.started and not self.finished:
+                # Mid-run: change the level on the tractor now (the starting level stays as it was).
+                level = max(0.0, min(100.0, float(fuel)))
+                self.tell_agent(t, cmd="set", fuel_pct=level)
+                t.fuel_pct, t.fuel_l = level, TANK_L * level / 100
+                t.hold_until = max(t.hold_until, time.time() + 0.6)
+                self.say("%s's fuel was set to %.0f%%." % (t.name, level), "event")
+                fuel = None
+                if level <= EMPTY_PCT and not t.broken:
+                    self.send_home(t.id, "ran out of fuel", "out of fuel")
             if fuel is not None:
                 t.init_fuel = max(0.0, min(100.0, float(fuel)))
             if battery is not None:
@@ -455,6 +467,8 @@ class Fleet:
                     self.watch_levels(t)
                 if self.running and not t.broken:
                     self.advance(t, dt, now)
+                elif t.state == "returning" and t.goal:
+                    self.go_home_step(t, now)
             if self.started and not self.finished and self.passes and all(p.done for p in self.passes):
                 self.finished = True
                 self.running = False
@@ -486,7 +500,7 @@ class Fleet:
     def watch_levels(self, t):
         """Fuel and battery, as the tractor's agent reports them."""
         if t.fuel_pct <= EMPTY_PCT:
-            self.breakdown(t.id, "ran out of fuel", "out of fuel")
+            self.send_home(t.id, "ran out of fuel", "out of fuel")
         elif t.battery_pct <= EMPTY_PCT:
             self.breakdown(t.id, "ran out of battery charge", "battery flat")
         else:
@@ -590,6 +604,28 @@ class Fleet:
             t.broken, t.state, t.reason = True, "broken", reason
             self.say("%s %s%s." % (t.name, what, note), "event")
             self.recover(t, what, stop, interrupted, before)
+
+    def send_home(self, tid, what, reason):
+        """Out of fuel: unlike a breakdown, the tractor can still drive, so it keeps the work it
+        finished, hands its unfinished passes to the others (same recovery agent), and drives
+        back to where it started on its reserve. There it waits for a refuel and Repair."""
+        with self.lock:
+            t = self.tractors[tid - 1]
+            if not self.field or t.broken:
+                return
+            self.breakdown(tid, what, reason)
+            home = t.home or (t.u - 15, t.v)
+            t.state, t.goal, t.path = "returning", home, []
+            self.goto(t)
+            self.say("%s is driving back home on its reserve. Its unfinished passes went to the others." % t.name, "event")
+
+    def go_home_step(self, t, now):
+        if math.hypot(t.goal[0] - t.u, t.goal[1] - t.v) <= 2.0:
+            t.state, t.goal = "home", None
+            self.send("stop %d" % t.id)
+            self.say("%s is back home. Refuel it and press Repair to bring it back to work." % t.name, "event")
+        elif now - t.last_cmd > 1.0:                     # UDP can drop a command; repeat it
+            self.goto(t)
 
     # ---- recovery agent
     def projected_route(self, t):
@@ -806,9 +842,16 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split("?")[0]
-        if path in ("/", "/index.html"):
-            with open(os.path.join(HERE, "dashboard.html"), "rb") as fh:
+        if path in ("/", "/index.html", "/classic"):
+            page = "dashboard.html" if path == "/classic" else "dashboard3d.html"   # 3D command center; original at /classic
+            with open(os.path.join(HERE, page), "rb") as fh:
                 self.reply(200, fh.read(), "text/html; charset=utf-8")
+        elif path.startswith("/synterra/") and path[10:] in ("comparison", "optimality", "adversarial", "timeline"):
+            try:                                           # results from the repo's run_demo.py / evaluate.py
+                with open(os.path.join(HERE, "..", "..", "out", path[10:] + ".json"), "rb") as fh:
+                    self.reply(200, fh.read())
+            except OSError:
+                self.reply(404, {"error": "no results yet"})
         elif path == "/state":
             self.reply(200, FLEET.state())
         elif path in IMAGES:                             # AgOpenGPS's own tractor artwork

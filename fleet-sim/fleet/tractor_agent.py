@@ -14,6 +14,7 @@ at least twice a second without one), so the coordinator can watch every tractor
 Commands it accepts:
     {"cmd": "reset", "fuel_pct": 80, "battery_pct": 100}   fill to these levels, clear the odometer
     {"cmd": "refill"}                                       full tank, full charge
+    {"cmd": "set", "fuel_pct": 0}                           change a level now (operator, mid-run)
     {"cmd": "mode", "working": true}                        implement in the ground or not
 """
 import json
@@ -118,6 +119,11 @@ class TractorAgent(threading.Thread):
             self.hold_until = time.time() + 0.5
         elif cmd == "refill":
             self.fuel_l, self.battery_pct = TANK_L, 100.0
+        elif cmd == "set":                                   # operator changes a level mid-run
+            if "fuel_pct" in msg:
+                self.fuel_l = TANK_L * max(0.0, min(100.0, float(msg["fuel_pct"]))) / 100
+            if "battery_pct" in msg:
+                self.battery_pct = max(0.0, min(100.0, float(msg["battery_pct"])))
         elif cmd == "mode":
             self.working = bool(msg.get("working"))
 
