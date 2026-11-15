@@ -17,18 +17,21 @@ from fleet import planner
 def small_instance(seed):
     sc = generate(seed)
     sc["events"] = []
-    sc["jobs"] = sc["jobs"][: 4 + seed % 3]          # 4 to 6 jobs: exhaustive search is feasible
+    sc["jobs"] = sc["jobs"][: 4 + seed % 5]          # 4 to 8 jobs: exact branch-and-bound is feasible
     sc["name"] = f"small seed {seed}"
     return sc
 
 
-def optimality(n):
+def optimality(n_req):
     rows = []
-    for seed in range(1, n + 1):
+    for seed in range(1, n_req + 1):
         sc = small_instance(seed)
         m = Memory(sc); navigation.rebuild(m)
         t0 = time.perf_counter()
-        _, ek, ex = planner.exact_best(m)
+        try:
+            _, ek, ex = planner.exact_best(m)
+        except RuntimeError:
+            continue                      # too big to prove optimal: left out, never guessed
         t_exact = time.perf_counter() - t0
         m2 = Memory(sc); navigation.rebuild(m2)
         t0 = time.perf_counter()
@@ -52,10 +55,11 @@ def optimality(n):
                          origin_optimal={o: list(k[:3]) == list(ek[:3]) and abs(k[3] - ek[3]) < 1e-6
                                          for o, k in by_origin.items()},
                          origin_goal_optimal={o: list(k[:3]) == list(ek[:3]) for o, k in by_origin.items()}))
+    n = len(rows)
     match = sum(r["goals_match"] for r in rows)
     exact_hit = sum(r["goals_match"] and abs(r["cost_gap_pct"]) < 1e-6 for r in rows)
     origins = sorted({o for r in rows for o in r["origin_goal_optimal"]})
-    summary = dict(instances=n, goals_optimal=match, fully_optimal=exact_hit,
+    summary = dict(instances=n, attempted=n_req, goals_optimal=match, fully_optimal=exact_hit,
                    avg_cost_gap_pct=round(sum(r["cost_gap_pct"] for r in rows) / n, 3),
                    max_cost_gap_pct=max(r["cost_gap_pct"] for r in rows),
                    goal_optimal_rate_by_source={o: sum(r["origin_goal_optimal"].get(o, False) for r in rows)
@@ -67,14 +71,16 @@ def write(out, opt, rows, adv):
     os.makedirs(out, exist_ok=True)
     json.dump(dict(summary=opt, rows=rows), open(os.path.join(out, "optimality.json"), "w"), indent=2)
     L = ["# How close is SYNTERRA to the best possible plan?", "",
-         f"{opt['instances']} small seeded farms (4-6 jobs, 2-3 tractors, no events). For each, the TRUE optimum of the "
-         "same objective was found by exhaustive search (every order and tractor choice, merging only states that are "
-         "exactly identical), and compared with SYNTERRA's normal search (beam width 30 + seeds).", "",
+         f"{opt['instances']} seeded farms (4-8 jobs, 2-3 tractors, no events). For each, the TRUE optimum of the "
+         "same objective was found by exact branch-and-bound (admissible bound, exact duplicate merging; cross-checked "
+         "against plain exhaustive search in the tests) and compared with what SYNTERRA commits in normal operation.", "",
          "Objective, in strict order: (1) priority finished on time, (2) priority finished, (3) priority-weighted "
          "lateness, (4) cost (travel, idle, service stops, plan changes, early finish of priority work, deadline slack).", "",
          f"- Optimal on goals 1-3 (the work that matters): **{opt['goals_optimal']}/{opt['instances']}**",
          f"- Optimal on all four goals including cost: **{opt['fully_optimal']}/{opt['instances']}**",
          f"- Average cost gap to optimum: {opt['avg_cost_gap_pct']}% (worst {opt['max_cost_gap_pct']}%)", "",
+         f"- Average time: SYNTERRA {sum(r['synterra_s'] for r in rows) / max(1, len(rows)):.2f} s per plan, exact solver "
+         f"{sum(r['exact_s'] for r in rows) / max(1, len(rows)):.2f} s (exact is only used here, never in the live demo)", "",
          "How often each candidate source alone reached the optimum on goals 1-3:", "",
          "| Source | Optimal on goals 1-3 |", "|---|---|"]
     for o, c in sorted(opt["goal_optimal_rate_by_source"].items(), key=lambda x: -x[1]):
@@ -108,7 +114,8 @@ def write(out, opt, rows, adv):
           "unreported blackout work not counted as repeated work; tractors only driving to a low-priority job could not be "
           "redirected after a breakdown; a cancelled implement hand-over left the receiving tractor's trip active; a "
           "stopped tractor cleared an implement it did not hold; a tractor stranded without fuel locked the only "
-          "sprayer (now: fuel delivery after recovery_minutes)."]
+          "sprayer (now: fuel delivery after recovery_minutes); a delay pushed back only the first tractor queued behind, "
+          "not the whole chain."]
     if "clearest_failure" in adv:
         L += ["", f"Clearest remaining failure: seed {adv['clearest_failure']['seed']} - {adv['clearest_failure']['detail']}"]
     open(os.path.join(out, "adversarial.md"), "w", encoding="utf-8").write("\n".join(L) + "\n")
@@ -116,7 +123,7 @@ def write(out, opt, rows, adv):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--small", type=int, default=30)
+    ap.add_argument("--small", type=int, default=60)
     ap.add_argument("--seeds", type=int, default=200)
     ap.add_argument("--out", default="out")
     a = ap.parse_args()

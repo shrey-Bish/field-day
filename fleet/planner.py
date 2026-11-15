@@ -13,11 +13,11 @@ import copy
 from .navigation import travel, path, edge_minutes, YARD, INF
 from .memory import PLANNABLE
 
-BEAM_WIDTH = 30
+BEAM_WIDTH = 120             # scenario key "beam_width" overrides (lower = faster on slow laptops)
 STABILITY_PENALTY = 15      # minutes-equivalent cost of moving an already-planned job to another tractor
 FRAGILITY_CANDIDATES = 8     # how many top schedules get the "what if a tractor fails" check
 LS_STARTS = 3                # local search polishes the best few candidates
-LS_BUDGET = 400              # max schedule re-builds per polish
+LS_BUDGET = 1200             # max schedule re-builds per polish
 FRAGILITY_MODE = "all"       # "all": fail before each task; "first": fail at the start only
 FRAGILITY_WEIGHT = 0.1       # cost minutes accepted per unit of fragility (chosen on seeds 1-100, checked on 101-200)
 SLACK_BUFFER = 15            # minutes of deadline slack we like to keep, to absorb delays
@@ -437,25 +437,98 @@ def _seed_from_pairs(mem, pairs, jobs, prev_owner, origin):
     return s
 
 
-def _wfa_seed(mem, jobs, prev_owner):
-    """k-Vac: the Work Function Algorithm picks the tractor for each job; we then build the
-    real schedule (implements, fuel, battery, roads) for that choice, falling back to the best
-    feasible tractor when WFA's choice cannot do the job."""
-    from .kvac import wfa_assign
-    tvs = _views(mem)
-    pairs = wfa_assign(mem, tvs, jobs)
-    s = dict(units=copy.deepcopy(mem.implements), tvs=tvs, field_free=initial_free(mem),
-             tasks=[], left=[j["id"] for j in jobs], cost=0.0, origin="kvac-wfa")
-    for jid, tid in pairs:
-        order = [tid] + sorted(t for t in s["tvs"] if t != tid)
+def _seed_from_choices(mem, pairs, jobs, prev_owner, origin):
+    """Turn an outside solver's (job, tractor) choices into a real schedule: build each trip
+    exactly (implements, fuel, battery, roads); if the chosen tractor cannot do it, use the next
+    feasible one; then insert any job the solver left out at its cheapest feasible place."""
+    s = dict(units=copy.deepcopy(mem.implements), tvs=_views(mem), field_free=initial_free(mem),
+             tasks=[], left=[j["id"] for j in jobs], cost=0.0, origin=origin)
+
+    def place(jid, order):
         for cand in order:
             task = build_task(mem, s["tvs"][cand], mem.jobs[jid], s["units"], s["field_free"])
             if task is not None:
                 _apply(task, s["tvs"][cand], s["units"], s["field_free"])
                 s["tasks"].append(task); s["left"].remove(jid)
                 s["cost"] += _task_cost(mem, task, prev_owner)
-                break
+                return True
+        return False
+
+    for jid, tid in pairs:
+        if jid in s["left"] and tid in s["tvs"]:
+            place(jid, [tid] + sorted(t for t in s["tvs"] if t != tid))
+    for jid in sorted(list(s["left"]), key=lambda x: (mem.jobs[x]["deadline"], -mem.jobs[x]["priority"], x)):
+        best = None
+        for tid, tv in sorted(s["tvs"].items()):
+            task = build_task(mem, tv, mem.jobs[jid], s["units"], s["field_free"])
+            if task is not None:
+                k = (task["late"], task["end"], tid)
+                best = k if best is None or k < best else best
+        if best:
+            place(jid, [best[2]])
     return s
+
+
+def _wfa_seed(mem, jobs, prev_owner):
+    """k-Vac: the Work Function Algorithm picks the tractor for each job."""
+    from .kvac import wfa_assign
+    return _seed_from_choices(mem, wfa_assign(mem, _views(mem), jobs), jobs, prev_owner, "kvac-wfa")
+
+
+def _hungarian_seed(mem, jobs, prev_owner):
+    """Sequential optimal assignment (Hungarian / Kuhn-Munkres). In each round every tractor gets
+    at most one of the remaining jobs, chosen so the round as a whole is optimal. Round cost of
+    tractor i doing job j = big penalty x priority if it would be late, + finish time + travel
+    - urgency bonus for priority. Rounds repeat until no job can be placed."""
+    from .assignment import hungarian, INF as HINF
+    s = dict(units=copy.deepcopy(mem.implements), tvs=_views(mem), field_free=initial_free(mem),
+             tasks=[], left=[j["id"] for j in jobs], cost=0.0, origin="hungarian")
+    while s["left"]:
+        tids = sorted(s["tvs"])
+        left = sorted(s["left"], key=lambda x: mem.jobs[x]["order"])
+        built = {}
+        cost = []
+        for tid in tids:
+            row = []
+            for jid in left:
+                task = build_task(mem, s["tvs"][tid], mem.jobs[jid], s["units"], s["field_free"])
+                built[(tid, jid)] = task
+                if task is None:
+                    row.append(HINF)
+                    continue
+                p = mem.jobs[jid]["priority"]
+                row.append((1e5 * p if task["late"] else 0) + task["end"] + 0.5 * task["travel"] - 30 * p)
+            cost.append(row)
+        pairs = hungarian(cost)
+        if not pairs:
+            break
+        # commit this round in time order; rebuild each trip on the updated state
+        for r, c in sorted(pairs, key=lambda rc: built[(tids[rc[0]], left[rc[1]])]["start"]):
+            tid, jid = tids[r], left[c]
+            task = build_task(mem, s["tvs"][tid], mem.jobs[jid], s["units"], s["field_free"])
+            if task is None:
+                continue
+            _apply(task, s["tvs"][tid], s["units"], s["field_free"])
+            s["tasks"].append(task); s["left"].remove(jid)
+            s["cost"] += _task_cost(mem, task, prev_owner)
+        if len(s["left"]) == len(left):
+            break
+    return s
+
+
+def _cuopt_seed(mem, jobs, prev_owner):
+    """NVIDIA cuOpt (GPU) routing solution, if cuOpt is installed (Linux / WSL2)."""
+    from . import cuopt_solver
+    if not mem.scenario.get("use_cuopt", True) or not cuopt_solver.available():
+        return None
+    try:
+        pairs = cuopt_solver.solve(mem, _views(mem), jobs, time_limit=mem.scenario.get("cuopt_time_limit", 2.0))
+    except Exception as ex:  # never let an optional solver break planning
+        mem.cuopt_error = repr(ex)
+        return None
+    if pairs is None:
+        return None
+    return _seed_from_choices(mem, pairs, jobs, prev_owner, "cuopt")
 
 
 def candidates(mem, width=BEAM_WIDTH):
@@ -473,6 +546,10 @@ def candidates(mem, width=BEAM_WIDTH):
         if sd is not None:
             finals.append(sd)
     finals.append(_wfa_seed(mem, jobs, prev_owner))
+    finals.append(_hungarian_seed(mem, jobs, prev_owner))
+    cu = _cuopt_seed(mem, jobs, prev_owner)
+    if cu is not None:
+        finals.append(cu)
     if mem.plan:
         rep = _repair(mem, jobs, prev_owner)
         rep["origin"] = "repair"
@@ -526,6 +603,18 @@ def _local_search(mem, state, jobs, prev_owner, budget=LS_BUDGET):
             for j in range(i + 1, n):
                 q = list(pairs); q[i], q[j] = q[j], q[i]
                 moves.append(q)
+        for i in range(n):                                    # exchange the tractors of two jobs
+            for j in range(i + 1, n):
+                if pairs[i][1] != pairs[j][1]:
+                    q = list(pairs)
+                    q[i], q[j] = (pairs[i][0], pairs[j][1]), (pairs[j][0], pairs[i][1])
+                    moves.append(q)
+        for i in range(n):                                    # relocate: new position AND new tractor
+            rest = pairs[:i] + pairs[i + 1:]
+            for j in range(n):
+                for tid in tids:
+                    if tid != pairs[i][1] and j != i:
+                        moves.append(rest[:j] + [(pairs[i][0], tid)] + rest[j:])
         for q in moves:
             if used >= budget:
                 break
@@ -540,7 +629,8 @@ def _local_search(mem, state, jobs, prev_owner, budget=LS_BUDGET):
     return best, used
 
 
-def _smart(mem, width=BEAM_WIDTH):
+def _smart(mem, width=None):
+    width = width or mem.scenario.get("beam_width", BEAM_WIDTH)
     jobs, finals, prev_owner, expansions = candidates(mem, width)
     if not finals:
         return [], {}, {}, {}
@@ -585,9 +675,79 @@ def _smart(mem, width=BEAM_WIDTH):
     return chosen["tasks"], chosen["left"], info, prev_owner
 
 
-def exact_best(mem):
-    """Exhaustive search (exact duplicate merging) - the true optimum of the same objective.
-    Exponential: use only for small instances, to measure how close the beam gets."""
+def _optimistic(mem, s):
+    """Admissible bound for branch-and-bound: a job can at best be done by its fastest capable
+    tractor driving straight there from where that tractor is now (no swaps, stops or queues).
+    Tractor clocks only move forward and road times obey the triangle inequality, so no real
+    completion can beat this."""
+    on, done = 0, 0
+    for jid in s["left"]:
+        job = mem.jobs[jid]
+        best = INF
+        for tv in s["tvs"].values():
+            if job["type"] in tv["caps"] and job["implement"] in tv["compat"]:
+                d = travel(mem, tv["pos"], job["field"])
+                if d != INF:
+                    best = min(best, tv["t"] + d + job["remaining"])
+        if best != INF:
+            done += job["priority"]
+            if best <= job["deadline"]:
+                on += job["priority"]
+    return on, done
+
+
+def exact_best(mem, node_limit=2_000_000):
+    """Exact optimum of the same lexicographic objective by depth-first branch-and-bound:
+    incumbent = SYNTERRA's own best schedule; prune a branch when its optimistic bound cannot
+    beat the incumbent; merge exactly identical states (same future) keeping the better past.
+    Returns (state, key, nodes). Raises RuntimeError if node_limit is hit (no false 'optimal')."""
+    jobs = plannable_jobs(mem)
+    prev_owner = dict(getattr(mem, "prev_owner", {}))
+    _, finals, _, _ = candidates(mem)
+    finals.sort(key=lambda s: _key(s, jobs))
+    best = finals[0]
+    best_k = _key(best, jobs)
+    root = dict(units=copy.deepcopy(mem.implements), tvs=_views(mem), field_free=initial_free(mem),
+                tasks=[], left=[j["id"] for j in jobs], cost=0.0)
+    seen = {}
+    nodes = 0
+    stack = [root]
+    while stack:
+        s = stack.pop()
+        nodes += 1
+        if nodes > node_limit:
+            raise RuntimeError("branch-and-bound node limit reached")
+        k = _key(s, jobs)
+        on, done = _optimistic(mem, s)
+        bound = (k[0] - on, k[1] - done, k[2], k[3])
+        if bound >= best_k:
+            continue
+        sig = _sig(s, True)
+        if sig in seen and seen[sig] <= k:
+            continue
+        seen[sig] = k
+        children = []
+        for jid in s["left"]:
+            for tid, tv in s["tvs"].items():
+                task = build_task(mem, tv, mem.jobs[jid], s["units"], s["field_free"])
+                if task is None:
+                    continue
+                c = _copy_state(s)
+                _apply(task, c["tvs"][tid], c["units"], c["field_free"])
+                c["tasks"].append(task); c["left"].remove(jid)
+                c["cost"] += _task_cost(mem, task, prev_owner)
+                children.append(c)
+        if not children:
+            if k < best_k:
+                best, best_k = s, k
+            continue
+        children.sort(key=lambda c: _key(c, jobs), reverse=True)   # best child explored first
+        stack.extend(children)
+    return best, best_k, nodes
+
+
+def exact_exhaustive(mem):
+    """Plain exhaustive search (no bounds) - only to cross-check branch-and-bound in tests."""
     jobs, finals, prev_owner, expansions = _beam(mem, exact=True)
     finals.sort(key=lambda s: (_key(s, jobs), [(t["job"], t["tractor"]) for t in s["tasks"]]))
     return finals[0], _key(finals[0], jobs), expansions

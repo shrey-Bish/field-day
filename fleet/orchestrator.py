@@ -536,21 +536,31 @@ def handle(mem, msg):
         cause["lead"] = (f"{tid} is running {d:.0f} min late on {task['job']} (now done at "
                          f"{mem.clock(task['end'])} instead of {mem.clock(old_end)}).")
         # knock-on effects on work already under way: anyone queued behind it in the same field
-        # or on the same single-lane road waits longer; everything not started is re-timed by the re-plan.
-        for oid, o in sorted(mem.active.items()):
-            if oid == tid:
-                continue
-            push = 0.0
-            if o["field"] == task["field"] and o["start"] >= old_end - EPS and o["start"] < task["end"]:
-                push = task["end"] - o["start"]
-            for key, r0, r1, who in task.get("reservations", ()):
-                for k2, s0, s1, w2 in o.get("reservations", ()):
-                    if k2 == key and s0 < r1 and r0 < s1 and s0 >= t:
-                        push = max(push, r1 - s0)
-            if push > 0:
-                _shift(o, max(t, o["depart"]), push)
-                mem.tractors[oid]["available_at"] = o["end"]
-                cause["lead"] += f" {oid} has to wait {push:.0f} min behind it."
+        # or on the same single-lane road waits longer, and so on down the whole chain;
+        # everything not started yet is re-timed by the re-plan.
+        queue = [(tid, old_end)]
+        waited = {}
+        while queue:
+            did, d_old_end = queue.pop(0)
+            d = mem.active[did]
+            for oid, o in sorted(mem.active.items()):
+                if oid == did:
+                    continue
+                push = 0.0
+                if o["field"] == d["field"] and o["start"] >= d_old_end - EPS and o["start"] < d["end"] - EPS:
+                    push = d["end"] - o["start"]
+                for key, r0, r1, who in d.get("reservations", ()):
+                    for k2, s0, s1, w2 in o.get("reservations", ()):
+                        if k2 == key and s0 < r1 - EPS and r0 < s1 - EPS and s0 >= t:
+                            push = max(push, r1 - s0)
+                if push > EPS:
+                    o_old_end = o["end"]
+                    _shift(o, max(t, o["depart"]), push)
+                    mem.tractors[oid]["available_at"] = o["end"]
+                    waited[oid] = waited.get(oid, 0.0) + push
+                    queue.append((oid, o_old_end))
+        for oid, w in sorted(waited.items()):
+            cause["lead"] += f" {oid} has to wait {w:.0f} min because of it."
     else:
         mem.record("IGNORED", reason=f"unknown event type {typ}", msg_id=msg["id"])
         return

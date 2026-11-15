@@ -1,6 +1,6 @@
 # SYNTERRA coordinator: how it works, how it was tested, what it scores
 
-Owner: Reya (HANDOFF items 1–4). Pure Python 3 (standard library plus `numpy` for the k-Vac work function).
+Owner: Reya (HANDOFF items 1–4). **Runs on plain Python 3 with nothing to install.** `numpy` is used only if present (faster k-Vac; same results), NVIDIA cuOpt only if installed (Linux / WSL2), and `pytest` only for the tests.
 No database: all state is in the one shared memory object (`fleet/memory.py`), as the design rules require.
 
 ## How to run
@@ -8,7 +8,7 @@ No database: all state is in the one shared memory object (`fleet/memory.py`), a
 ```
 python run_demo.py            # writes out/ (team scenario) and out/stress/ (every event type)
 python evaluate.py            # writes out/optimality.md and out/adversarial.md
-python -m pytest -q tests     # 27 automated tests
+python -m pytest -q tests     # 49 automated tests
 ```
 
 ## What each file does
@@ -18,7 +18,9 @@ python -m pytest -q tests     # 27 automated tests
 | `fleet/memory.py` | Shared memory: tractors, fields, implements, jobs split into sections, append-only event log with ids and sequence numbers |
 | `fleet/navigation.py` | Farm road graph, shortest paths (Floyd–Warshall); blocked **and** uncertain roads are removed |
 | `fleet/planner.py` | Fleet agent: SYNTERRA search + baselines (FCFS, nearest), fragility check, local search, exact solver |
-| `fleet/kvac.py` | Work Function Algorithm (the k-Vac algorithm), used as one candidate schedule |
+| `fleet/kvac.py` | Work Function Algorithm (the k-Vac algorithm), used as one candidate schedule; numpy or pure Python |
+| `fleet/assignment.py` | Hungarian algorithm (Kuhn–Munkres, O(n³)) for optimal tractor-to-job rounds |
+| `fleet/cuopt_solver.py` | NVIDIA cuOpt adapter: maps the farm onto cuOpt's routing model; used automatically when cuOpt is installed |
 | `fleet/safety.py` | Independent safety check of every plan (re-derives routes, fuel, battery, ownership) |
 | `fleet/orchestrator.py` | Runs virtual time, handles every event, keeps finished work, re-plans, saves only safe plans |
 | `fleet/belief.py` | Decisions under uncertainty (value of information): verify, or wait for the safety lease |
@@ -32,11 +34,13 @@ python -m pytest -q tests     # 27 automated tests
 ## The algorithm (what happens at every re-plan)
 
 1. **Candidates.** SYNTERRA builds many complete fleet schedules:
-   - **beam search** (width 30): grows schedules one job at a time and keeps the 30 best partial ones; states reached by different orders are merged;
+   - **beam search** (width 120, scenario key `beam_width` to lower it): grows schedules one job at a time and keeps the best partial ones; states reached by different orders are merged;
    - **greedy**, **FCFS** and **nearest** schedules (so a new plan is never worse on paper than a baseline at the moment it is made);
    - **k-Vac / Work Function Algorithm** choice of tractor per job;
+   - **Hungarian rounds**: each round gives every tractor at most one job so the whole round is optimal (Kuhn–Munkres);
+   - **NVIDIA cuOpt** routing solution, when cuOpt is installed (time windows = deadlines, prizes = priority, tractor–job compatibility);
    - **plan repair**: keep every job on its current tractor where still feasible, insert the rest.
-2. **Local search.** The best 3 candidates are polished with vehicle-routing moves (reassign a job, move it in the order, swap two jobs, insert an unplanned job). Only strict improvements are kept.
+2. **Local search.** The best 3 candidates are polished with vehicle-routing moves: reassign, move, swap, exchange two jobs' tractors, relocate (new tractor and new position), insert an unplanned job. Only strict improvements are kept.
 3. **Objective, in strict order:** (1) most priority finished on time, (2) most priority finished at all, (3) least priority-weighted lateness, (4) least cost: travel + idle waiting + service stops + plan changes (stability) + finishing priority work early + keeping 15 min deadline slack.
 4. **Robustness (contingency check).** Among schedules tied on goals 1–3, pick the lowest `cost + 0.1 × fragility`. Fragility = average damage if any tractor fails before any of its tasks (jobs that become late or impossible, extra driving), recovered greedily by the others. The weight 0.1 was chosen on random farms 1–100 and confirmed on unseen farms 101–200.
 5. **Redirect check.** After a disruption, a tractor that is only *driving* to a job (no work started) may change course, but only if that strictly improves goals 1–3. Started work is never disturbed.
@@ -55,7 +59,8 @@ Jobs are split into 5-minute sections. When a tractor stops mid-job (breakdown, 
 
 | Source | What is in the code | Faithful? |
 |---|---|---|
-| NVIDIA route optimisation agent | Central optimiser that takes job and tractor constraints and computes global assignments | Idea only: no cuOpt and no OR-Tools (not installed); own beam search + local search + exact solver |
+| NVIDIA route optimisation agent / cuOpt | **Real cuOpt adapter** (`cuopt_solver.py`) building cuOpt's routing model; its route is one candidate, rebuilt exactly and safety-checked | Adapter yes, tested against a stand-in. cuOpt itself is Linux-only, so it was **not run on this Windows machine**; it activates under Linux / WSL2 with `pip install --extra-index-url=https://pypi.nvidia.com cuopt-cu12` |
+| Hungarian algorithm (your suggestion) | Kuhn–Munkres O(n³) (`assignment.py`), verified against brute force on hundreds of random matrices; used for optimal assignment rounds | Yes |
 | k-Vac (OxHack) | **Real Work Function Algorithm** recursion (`kvac.py`), tested: its final value equals the brute-force offline optimum. Used as a candidate schedule; plus look-ahead and stability penalty | Algorithm yes; its competitive guarantee does **not** carry over (work time, fuel, deadlines added) |
 | CLEAR (ISEF) | Structured events, ids, per-source sequence numbers, duplicate and stale dropping, safety-first ordering | Messaging ideas yes; no reinforcement learning |
 | ScoutCane | Shared road map: blocked / uncertain / cleared, used by every tractor | Yes (no hyperdimensional computing) |
@@ -76,20 +81,23 @@ Jobs are split into 5-minute sections. When a tractor stops mid-job (breakdown, 
 | | SYNTERRA | FCFS | Nearest |
 |---|---|---|---|
 | Jobs on time | **10/10** | 7/10 | 7/10 |
-| Travel | **356 min (89 km)** | 544 min (136 km) | 484 min (121 km) |
-| All work done after | **443 min** | 558 min | 540 min |
+| Travel (min) | **356** | 544 | 484 |
+| Distance (km) | **89** | 136 | 121 |
+| All work done after (min) | **443** | 558 | 540 |
 | Implement changes | **5** | 9 | 8 |
-| Rule violations | 0 | 0 | 0 |
+| Rule violations in what ran | **0** | 0 | 0 |
 
-**Stress scenario (`scenarios/stress.json`, every event type):** SYNTERRA 11/11 completed, 8 on time; FCFS 5 on time; nearest 6 on time; SYNTERRA drives the least. See `out/stress/comparison.md`.
+**Stress scenario (`scenarios/stress.json`, every event type):** SYNTERRA 11/11 completed, 8 on time, 598 min travel; FCFS 5 on time (728 min); nearest 6 on time (654 min). Violations: 0/0/0.
 
-**Optimality (`out/optimality.md`):** on 30 small farms where the true optimum can be found by exhaustive search, SYNTERRA matches it on goals 1–3 in **29/30**; average cost gap 1.1%.
+**Optimality (`out/optimality.md`):** on 60 farms of 4–8 jobs, the true optimum was found by exact branch-and-bound. SYNTERRA's committed plan matches it on goals 1–3 (on-time and finished priority work, lateness) in **60/60**, and on all four goals including cost in 50/60 (average cost gap 1.121%; some cost is deliberately traded for robustness to a breakdown).
 
-**Adversarial (`out/adversarial.md`, 200 random hard farms):** SYNTERRA 1076 jobs on time vs 751 (FCFS) and 625 (nearest); priority-weighted on-time work 2364 vs 1539 and 1270; **0 rule violations** in what ran for every coordinator. SYNTERRA is not worse than FCFS in 192/200 farms; in the other 8 an unforeseeable breakdown hurt its plan more than FCFS's (reported, not hidden).
+**Adversarial (`out/adversarial.md`, 500 random hard farms):** jobs on time SYNTERRA 2648 vs 1852 (FCFS) and 1570 (nearest); priority-weighted on-time work 5807 vs 3795 and 3228; travel 153056 vs 172369 and 178989 min; rule violations in what ran 0 / 0 / 0. SYNTERRA is not worse than FCFS in 478/500 farms; in the other 22 an unforeseeable breakdown or event hurt its plan more (reported, not hidden).
 
-## Tests (27, all passing)
+## Tests (49, all passing)
 
-The 15 required cases (no sprayer → no spray job; not enough energy; no two owners; finished sections kept after breakdown; replacement gets only the rest; blocked road never routed; re-plan keeps finished jobs; duplicate events; repeated failure events; unreachable job reported; communication loss keeps ownership; deadlines and finish times consistent; reproducible; reset; benchmark numbers come from executed events), plus: baseline late job reported, SYNTERRA beats baseline, stress scenario clean, grounded "why?", single-lane road never shared, k-Vac work function = offline optimum, k-Vac used in search, beam vs exact optimum, local search never worse, redirect only before work starts, cancelled hand-over never double-holds, delay accounting exact, 25-farm adversarial campaign has no rule violations.
+`tests/test_coordinator.py`: the 15 required cases (no sprayer → no spray job; not enough energy; no two owners; finished sections kept after breakdown; replacement gets only the rest; blocked road never routed; re-plan keeps finished jobs; duplicate events; repeated failure events; unreachable job reported; communication loss keeps ownership; deadlines and finish times consistent; reproducible; reset; benchmark numbers come from executed events), plus baseline late job reported, SYNTERRA beats baseline, stress scenario clean, grounded "why?", single-lane road never shared, k-Vac work function = offline optimum, local search never worse, redirect only before work starts, cancelled hand-over never double-holds, delay accounting exact, adversarial campaign clean.
+
+`tests/test_algorithms.py`: Hungarian = brute force (400 random matrices), branch-and-bound = exhaustive search, SYNTERRA reaches the exact optimum on the farms it used to miss, pure-Python k-Vac = numpy k-Vac, shortest paths = Dijkstra (with closed roads), cuOpt adapter model and capability matching (stand-in solver), planner works without cuOpt, delay chain pushes everyone queued behind, and **one test per safety rule** proving each violation type is caught (capability, implement, remaining work only, double assignment, broken tractor, closed road, finished job, unexplained job, one tractor per field, battery, fuel, single implement holder).
 
 ## For Mridula: `out/timeline.json`
 
@@ -118,15 +126,14 @@ The 15 required cases (no sprayer → no spray job; not enough energy; no two ow
 2. **Breakdown (07:35):** T2 breaks; the feed shows which sections were kept and who takes the rest.
 3. **Recovery:** the replacement drives there, the field keeps shading from where it stopped, and nothing is done twice.
 4. **Blocked road (08:30) and priority change (08:50):** routes change, the plan stays safe, and the feed explains why.
-5. **Scoreboard:** 10/10 on time vs 7/10, 35% less driving, 0 violations. Then point to `out/optimality.md` (29/30 optimal) and `out/adversarial.md` (200 hard farms, 0 violations) as the reason to trust the plan.
+5. **Scoreboard:** 10/10 on time vs 7/10, 35% less driving, 0 violations. Then point to `out/optimality.md` (60/60 optimal on the goals that matter) and `out/adversarial.md` (500 hard farms, 0 violations for SYNTERRA) as the reason to trust the plan.
 
 ## Limitations (honest)
 
-- No NVIDIA cuOpt and no OR-Tools; the search is our own (beam + local search), with exact search only to measure accuracy on small farms.
-- The k-Vac guarantee does not apply to this extended problem; WFA is one candidate among several.
+- NVIDIA cuOpt is Linux-only, so it was not run on this Windows laptop; the adapter is tested against a stand-in and switches on automatically under Linux / WSL2. Without it, SYNTERRA uses its own solvers (beam + Hungarian + k-Vac + local search).
+- The k-Vac competitive guarantee does not apply to this extended problem; WFA is one candidate among several.
 - The farm graph uses direct roads between every pair of places (Manhattan distance); a tractor stopped mid-road goes to the nearer end.
 - Probabilities in the uncertainty model are assumptions, not data.
-- Single-lane road reservations are re-checked at every re-plan; a delay to an active tractor pushes back only active tractors queued directly behind it on the same field or road.
-- 8/200 adversarial farms end with less on-time priority work than FCFS after an unforeseeable failure.
-- Slowest re-plan is about 0.5 s (fine for 3 tractors and 10 jobs; larger fleets would need a smaller beam).
+- 22/500 adversarial farms end with less on-time priority work than FCFS after an unforeseeable failure.
+- Slowest re-plan is under 1 s at beam width 120 (lower `beam_width` in the scenario on a slow laptop).
 - Tractor link and AgOpenWeb (HANDOFF item 5) belong to Mridula's track; this coordinator runs on the built-in simulator.

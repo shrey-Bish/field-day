@@ -23,8 +23,13 @@ What this does and does NOT give us:
   - We use WFA's tractor-per-job choice as one candidate schedule inside SYNTERRA's search; the
     lexicographic objective and the safety agent decide whether it is used.
 """
-import numpy as np
+import itertools
 from .navigation import YARD, INF
+try:                      # numpy only makes it faster; plain Python gives the same result
+    import numpy as np
+except ImportError:       # pragma: no cover - exercised by forcing the fallback in tests
+    np = None
+USE_NUMPY = np is not None
 
 BIG = 1e7
 
@@ -42,7 +47,58 @@ def _transform(A, D, k):
     return A
 
 
+def _wfa_run_py(D, start, requests):
+    """Same recursion as wfa_run, in plain Python (dict over configurations)."""
+    n, k = len(D), len(start)
+    configs = list(itertools.product(range(n), repeat=k))
+    w = {c: sum(D[start[i]][c[i]] for i in range(k)) for c in configs}
+
+    def transform(A):
+        for ax in range(k):
+            B = {}
+            for c in configs:
+                best = None
+                for x in range(n):
+                    c2 = c[:ax] + (x,) + c[ax + 1:]
+                    v = A[c2] + D[x][c[ax]]
+                    if best is None or v < best:
+                        best = v
+                B[c] = best
+            A = B
+        return A
+
+    cur, chosen = list(start), []
+    for r, able in requests:
+        if not able:
+            chosen.append(None)
+            continue
+        new_w = {c: BIG * 10 for c in configs}
+        for i in able:
+            A = {c: (w[c] if c[i] == r else BIG * 10) for c in configs}
+            T = transform(A)
+            for c in configs:
+                if T[c] < new_w[c]:
+                    new_w[c] = T[c]
+        w = new_w
+        best, best_i = None, None
+        for i in able:
+            c = list(cur)
+            c[i] = r
+            val = w[tuple(c)] + D[cur[i]][r]
+            if best is None or val < best - 1e-9:
+                best, best_i = val, i
+        cur[best_i] = r
+        chosen.append(best_i)
+    return chosen, float(min(w.values()))
+
+
 def wfa_run(D, start, requests):
+    if not USE_NUMPY:
+        return _wfa_run_py(D, start, requests)
+    return _wfa_run_np(D, start, requests)
+
+
+def _wfa_run_np(D, start, requests):
     """Pure WFA. D: (n x n) distances, start: server positions, requests: [(node, [able servers])].
     Returns (chosen server per request, min_C w_final(C)). The final minimum of the work function
     equals the offline optimum movement cost (used in the tests to check the recursion)."""
