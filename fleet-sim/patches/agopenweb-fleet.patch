@@ -1,0 +1,69 @@
+diff --git a/Platforms/AgOpenWeb.Desktop/SingleInstance.cs b/Platforms/AgOpenWeb.Desktop/SingleInstance.cs
+index 4a65d42..9108e67 100644
+--- a/Platforms/AgOpenWeb.Desktop/SingleInstance.cs
++++ b/Platforms/AgOpenWeb.Desktop/SingleInstance.cs
+@@ -20,7 +20,9 @@ static class SingleInstance
+     /// <summary>The held mutex, or null when another copy holds it.</summary>
+     public static Mutex? TryAcquire()
+     {
+-        var m = new Mutex(false, Name);
++        // Fleet hack (AgX hackday): one copy per port, so three tractors can run side by side.
++        var port = Environment.GetEnvironmentVariable("AGOPENWEB_PORT");
++        var m = new Mutex(false, string.IsNullOrEmpty(port) ? Name : Name + "." + port);
+         try
+         {
+             if (m.WaitOne(0)) return m;
+diff --git a/Shared/AgOpenWeb.RemoteServer/RemoteServerHost.cs b/Shared/AgOpenWeb.RemoteServer/RemoteServerHost.cs
+index 0ffaefd..40fbe22 100644
+--- a/Shared/AgOpenWeb.RemoteServer/RemoteServerHost.cs
++++ b/Shared/AgOpenWeb.RemoteServer/RemoteServerHost.cs
+@@ -302,6 +302,10 @@ public sealed class RemoteServerHost
+         IVehicleProfileService vehicleProfiles, IPersistentStateService persist,
+         INtripClientService? ntrip = null, int port = 5174)
+     {
++        // Fleet hack (AgX hackday): AGOPENWEB_PORT lets several tractors (one instance each)
++        // run on one computer, each on its own port.
++        if (int.TryParse(Environment.GetEnvironmentVariable("AGOPENWEB_PORT"), out var envPort) && envPort > 0)
++            port = envPort;
+         Port = port;
+ 
+         // Direct construction — no ASP.NET DI container. (The old Kestrel host
+diff --git a/Shared/AgOpenWeb.RemoteServer/wwwroot/index.html b/Shared/AgOpenWeb.RemoteServer/wwwroot/index.html
+index 714b0f4..6a52049 100644
+--- a/Shared/AgOpenWeb.RemoteServer/wwwroot/index.html
++++ b/Shared/AgOpenWeb.RemoteServer/wwwroot/index.html
+@@ -2009,5 +2009,6 @@
+   <script src="/js/map-draw.js"></script>
+   <script src="/js/map-layers.js"></script>
+   <script src="/js/frame.js"></script>
++  <script src="/js/fleet-bridge.js"></script>
+ </body>
+ </html>
+diff --git a/Shared/AgOpenWeb.RemoteServer/wwwroot/js/fleet-bridge.js b/Shared/AgOpenWeb.RemoteServer/wwwroot/js/fleet-bridge.js
+new file mode 100644
+index 0000000..9ead951
+--- /dev/null
++++ b/Shared/AgOpenWeb.RemoteServer/wwwroot/js/fleet-bridge.js
+@@ -0,0 +1,22 @@
++// SPDX-License-Identifier: Apache-2.0
++// Fleet hack (AgX hackday): when this page is shown inside a fleet page's iframe, the fleet page
++// can send commands to this tractor and read its position. Only active inside a frame.
++//   in : { fleet: 'cmd', cmd: 'field.openOnly|FleetField' }
++//   out: { fleet: 'state', e, n, heading, speed, originLat, originLon, hasField, fieldName, control }
++(function () {
++  if (window.parent === window) return;
++  window.addEventListener('message', ev => {
++    const d = ev.data;
++    if (d && d.fleet === 'cmd' && typeof d.cmd === 'string') transport.send(d.cmd);
++  });
++  setInterval(() => {
++    const p = tick && tick.pose;
++    window.parent.postMessage({
++      fleet: 'state',
++      e: p ? p.e : null, n: p ? p.n : null, heading: p ? p.heading : null, speed: p ? p.speed : null,
++      originLat: scene ? scene.originLat : null, originLon: scene ? scene.originLon : null,
++      hasField: !!(scene && scene.hasField), fieldName: scene ? scene.fieldName : '',
++      control: !!iHoldControl,
++    }, '*');
++  }, 500);
++})();

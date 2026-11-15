@@ -1,0 +1,2 @@
+# Keep the AgOpenWeb patch byte-for-byte so `git apply` works on any machine.
+*.patch -text

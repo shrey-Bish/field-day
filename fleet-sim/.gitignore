@@ -1,0 +1,18 @@
+# AgOpenWeb is cloned by setup-agopenweb.ps1 (our changes to it are in patches/)
+/AgOpenWeb/
+
+# Runtime data and logs
+/fleet-data/
+/fleet/logs/
+__pycache__/
+*.pyc
+
+# .NET build output
+bin/
+obj/
+
+# Editors / OS
+.vs/
+.vscode/
+Thumbs.db
+.DS_Store
