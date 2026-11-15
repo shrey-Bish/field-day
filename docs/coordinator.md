@@ -136,4 +136,4 @@ Jobs are split into 5-minute sections. When a tractor stops mid-job (breakdown, 
 - Probabilities in the uncertainty model are assumptions, not data.
 - 22/500 adversarial farms end with less on-time priority work than FCFS after an unforeseeable failure.
 - Slowest re-plan is under 1 s at beam width 120 (lower `beam_width` in the scenario on a slow laptop).
-- Tractor link and AgOpenWeb (HANDOFF item 5) belong to Mridula's track; this coordinator runs on the built-in simulator.
+- Tractor link and AgOpenWeb belong to Mridula's track; this coordinator runs on the built-in simulator.
