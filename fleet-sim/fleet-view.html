@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fleet View - 3 Tractors</title>
+<style>
+  :root { --bg:#10151a; --panel:#1a222b; --line:#2c3844; --text:#e6edf3; --muted:#8b98a5; --ok:#3fb950; --bad:#f85149; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, Segoe UI, sans-serif; }
+  body { display: flex; flex-direction: column; }
+  header { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 16px; margin: 0 auto 0 0; }
+  button { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; font: inherit; }
+  button.on { border-color: var(--ok); }
+  main { flex: 1; display: grid; gap: 6px; padding: 6px; min-height: 0; grid-template-columns: repeat(3, 1fr); }
+  main.stack { grid-template-columns: 1fr; grid-auto-rows: 80vh; overflow: auto; }
+  main.solo { grid-template-columns: 1fr; }
+  main.solo .pane:not(.focus) { display: none; }
+  .pane { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); min-height: 0; }
+  .bar { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+  .dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); }
+  .name { font-weight: 600; }
+  .url { color: var(--muted); font-size: 12px; margin-right: auto; }
+  .bar a { color: var(--muted); font-size: 12px; }
+  iframe { flex: 1; width: 100%; border: 0; background: #000; min-height: 0; }
+  @media (max-width: 1100px) { main { grid-template-columns: 1fr; grid-auto-rows: 80vh; overflow: auto; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Fleet View</h1>
+  <span id="fieldMsg" style="color:var(--muted);font-size:13px"></span>
+  <button id="place" disabled>Put tractors in field</button>
+  <button id="layout">Layout: side by side</button>
+  <button id="reload">Reload all</button>
+</header>
+<main id="grid"></main>
+
+<script src="fleet-field.js"></script>  <!-- written by install-field.ps1; fine if missing -->
+<script>
+// One AgOpenWeb instance per tractor (started by start-fleet.ps1).
+const TRACTORS = [
+  { name: 'Tractor 1', port: 5174 },
+  { name: 'Tractor 2', port: 5175 },
+  { name: 'Tractor 3', port: 5176 },
+];
+const host = location.hostname || 'localhost';
+const grid = document.getElementById('grid');
+
+for (const t of TRACTORS) {
+  t.url = `http://${host}:${t.port}/`;
+  const pane = document.createElement('section');
+  pane.className = 'pane';
+  pane.innerHTML = `
+    <div class="bar">
+      <span class="dot" title="checking"></span>
+      <span class="name">${t.name}</span>
+      <span class="url">:${t.port}</span>
+      <button class="focusBtn">Focus</button>
+      <a href="${t.url}" target="_blank" rel="noopener">open in tab</a>
+    </div>
+    <iframe src="${t.url}" title="${t.name}" allow="fullscreen"></iframe>`;
+  t.pane = pane; t.dot = pane.querySelector('.dot'); t.frame = pane.querySelector('iframe');
+  pane.querySelector('.focusBtn').onclick = () => {
+    const on = !pane.classList.contains('focus');
+    TRACTORS.forEach(x => x.pane.classList.remove('focus'));
+    pane.classList.toggle('focus', on);
+    grid.classList.toggle('solo', on);
+  };
+  grid.appendChild(pane);
+}
+
+// Health check: is each instance answering? (no-cors: we only need to know it responded)
+async function ping(t) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 2000);
+  try {
+    await fetch(t.url, { mode: 'no-cors', cache: 'no-store', signal: ctl.signal });
+    if (t.dot.classList.contains('bad')) t.frame.src = t.url;   // came back: reload its view
+    t.dot.className = 'dot ok'; t.dot.title = 'running';
+  } catch {
+    t.dot.className = 'dot bad'; t.dot.title = 'not responding';
+  } finally { clearTimeout(timer); }
+}
+const pingAll = () => TRACTORS.forEach(ping);
+pingAll(); setInterval(pingAll, 3000);
+
+// ---- Shared field: open the same field in every tractor and park each one inside it.
+// Each AgOpenWeb page reports its state to us and accepts commands (js/fleet-bridge.js in the host).
+const FIELD = window.FLEET_FIELD || null;
+const fieldMsg = document.getElementById('fieldMsg'), placeBtn = document.getElementById('place');
+const send = (t, cmd) => t.frame.contentWindow.postMessage({ fleet: 'cmd', cmd }, '*');
+
+// Start points: spread along the field's first edge, pulled a little way inside.
+function startPoint(i) {
+  const r = FIELD.ring, a = r[0], b = r[1], k = (i + 0.5) / TRACTORS.length;
+  const cLat = r.reduce((s, p) => s + p[0], 0) / r.length, cLon = r.reduce((s, p) => s + p[1], 0) / r.length;
+  const lat = a[0] + (b[0] - a[0]) * k, lon = a[1] + (b[1] - a[1]) * k;
+  return [lat + (cLat - lat) * 0.15, lon + (cLon - lon) * 0.15];
+}
+function placeAll() {
+  if (!FIELD) return;
+  TRACTORS.forEach((t, i) => {
+    const [lat, lon] = startPoint(i);
+    send(t, 'field.openOnly|' + FIELD.name);
+    setTimeout(() => send(t, `sim.setCoords|${lat.toFixed(8)},${lon.toFixed(8)}`), 2500);
+  });
+}
+function refreshFieldMsg() {
+  if (!FIELD) { fieldMsg.textContent = 'No field installed (run install-field.ps1)'; return; }
+  const inField = TRACTORS.filter(t => t.state && t.state.hasField && t.state.fieldName === FIELD.name).length;
+  const linked = TRACTORS.filter(t => t.state).length;
+  fieldMsg.textContent = `${FIELD.name}: open in ${inField} of ${TRACTORS.length} tractors` + (linked < TRACTORS.length ? ` (${linked} linked)` : '');
+  placeBtn.disabled = linked === 0;
+}
+let autoPlaced = false;
+window.addEventListener('message', ev => {
+  const d = ev.data;
+  if (!d || d.fleet !== 'state') return;
+  const t = TRACTORS.find(x => x.frame.contentWindow === ev.source);
+  if (!t) return;
+  t.state = d;
+  refreshFieldMsg();
+  // First time every tractor is linked and in control with no field open: do it automatically.
+  if (FIELD && !autoPlaced && TRACTORS.every(x => x.state && x.state.control)) {
+    autoPlaced = true;
+    if (TRACTORS.some(x => !x.state.hasField)) placeAll();
+  }
+});
+placeBtn.onclick = placeAll;
+refreshFieldMsg();
+
+document.getElementById('reload').onclick = () => TRACTORS.forEach(t => t.frame.src = t.url);
+document.getElementById('layout').onclick = e => {
+  const stacked = grid.classList.toggle('stack');
+  e.target.textContent = 'Layout: ' + (stacked ? 'stacked' : 'side by side');
+};
+</script>
+</body>
+</html>
