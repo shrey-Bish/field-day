@@ -1,0 +1,47 @@
+{
+  "name": "Field Day demo farm",
+  "start_clock": "06:00",
+  "yard": [0, 0],
+  "minutes_per_cell": 4,
+  "swap_minutes": 10,
+  "refuel_minutes": 15,
+  "recovery_minutes": 30,
+  "fields": [
+    {"id": "F1", "x": 2, "y": 1},
+    {"id": "F2", "x": 5, "y": 1},
+    {"id": "F3", "x": 1, "y": 4},
+    {"id": "F4", "x": 4, "y": 4},
+    {"id": "F5", "x": 7, "y": 3},
+    {"id": "F6", "x": 2, "y": 7},
+    {"id": "F7", "x": 6, "y": 6},
+    {"id": "F8", "x": 8, "y": 8}
+  ],
+  "implements": [
+    {"id": "SP1", "type": "sprayer"},
+    {"id": "MW1", "type": "mower"},
+    {"id": "MW2", "type": "mower"},
+    {"id": "SD1", "type": "seeder"}
+  ],
+  "tractors": [
+    {"id": "T1", "capabilities": ["spray", "mow"], "compatible_implements": ["sprayer", "mower"], "tank_minutes": 300, "implement": null},
+    {"id": "T2", "capabilities": ["mow", "seed"], "compatible_implements": ["mower", "seeder"], "tank_minutes": 260, "implement": null},
+    {"id": "T3", "capabilities": ["spray", "mow", "seed"], "compatible_implements": ["sprayer", "mower", "seeder"], "tank_minutes": 320, "implement": null}
+  ],
+  "jobs": [
+    {"id": "J1", "type": "mow", "implement": "mower", "field": "F8", "priority": 1, "deadline": 480, "work_minutes": 50},
+    {"id": "J2", "type": "spray", "implement": "sprayer", "field": "F1", "priority": 3, "deadline": 150, "work_minutes": 40},
+    {"id": "J3", "type": "seed", "implement": "seeder", "field": "F6", "priority": 2, "deadline": 300, "work_minutes": 60},
+    {"id": "J4", "type": "mow", "implement": "mower", "field": "F2", "priority": 2, "deadline": 240, "work_minutes": 45},
+    {"id": "J5", "type": "spray", "implement": "sprayer", "field": "F7", "priority": 2, "deadline": 330, "work_minutes": 50},
+    {"id": "J6", "type": "mow", "implement": "mower", "field": "F3", "priority": 1, "deadline": 420, "work_minutes": 40},
+    {"id": "J7", "type": "seed", "implement": "seeder", "field": "F4", "priority": 3, "deadline": 260, "work_minutes": 55},
+    {"id": "J8", "type": "spray", "implement": "sprayer", "field": "F5", "priority": 1, "deadline": 450, "work_minutes": 45},
+    {"id": "J9", "type": "mow", "implement": "mower", "field": "F7", "priority": 2, "deadline": 400, "work_minutes": 35},
+    {"id": "J10", "type": "seed", "implement": "seeder", "field": "F3", "priority": 1, "deadline": 470, "work_minutes": 50}
+  ],
+  "events": [
+    {"t": 95, "type": "breakdown", "tractor": "T2"},
+    {"t": 150, "type": "blocked_route", "between": ["F4", "F7"]},
+    {"t": 170, "type": "priority_change", "job": "J8", "priority": 3}
+  ]
+}
