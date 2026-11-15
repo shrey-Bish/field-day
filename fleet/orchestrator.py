@@ -33,6 +33,7 @@ def new_run(scenario, policy="smart", extra_events=None):
     mem.recoveries = []
     mem.prev_owner = {}
     mem.frames = []
+    mem.pending_delivery = set()
     navigation.rebuild(mem)
     for msg in from_scenario(list(scenario.get("events", [])) + list(extra_events or [])):
         mem.bus.publish(msg)
@@ -122,19 +123,22 @@ def advance(mem, t):
                     best = _min(best, (time_at_work(task, acc), 2, "segment", (tid, sid)))
                     break
             best = _min(best, (task["end"], 3, "complete", tid))
+        firsts = {}
         for task in sorted(mem.plan, key=lambda x: (x["depart"], x["tractor"])):
-            tid = task["tractor"]
-            if tid not in mem.active and mem.tractors[tid]["status"] == "ok":
-                best = _min(best, (task["depart"], 0, "depart", task))
-                break
+            firsts.setdefault(task["tractor"], task)
+        for tid, task in sorted(firsts.items()):
+            if tid in mem.active or mem.tractors[tid]["status"] != "ok":
+                continue
+            if task["swap"] and mem.implements[task["unit"]]["holder"] not in (None, tid):
+                continue      # hand-over not committed yet: never claim an implement someone holds
+            best = _min(best, (task["depart"], 0, "depart", task))
         if best is None or best[0] > t + EPS:
             break
         when, _, action, payload = best
         mem.now = max(mem.now, when)
         if action == "depart":
             # depart only the first planned task of each tractor
-            first = min((x for x in mem.plan if x["tractor"] == payload["tractor"]), key=lambda x: x["depart"])
-            _activate(mem, first)
+            _activate(mem, payload)
         elif action == "work":
             task = mem.active[payload]
             task["work_started"] = True
@@ -163,7 +167,7 @@ def _min(a, b):
 # ======================================================================
 # stopping a tractor mid-task without losing finished work
 # ======================================================================
-def interrupt(mem, tid, t_phys, reason, status="ok", confirmed_t=None, blocked_edge=None):
+def interrupt(mem, tid, t_phys, reason, status="ok", confirmed_t=None, blocked_edge=None, recovery=True):
     """Stop tractor `tid`'s current task at physical time t_phys.
     Sections finished by `confirmed_t` (default: t_phys) are kept as done. Sections the tractor
     finished physically after its last report are kept aside as 'unconfirmed' (never lost,
@@ -172,6 +176,7 @@ def interrupt(mem, tid, t_phys, reason, status="ok", confirmed_t=None, blocked_e
     tr = mem.tractors[tid]
     job = mem.jobs[task["job"]]
     ps = phase_state(mem, task, t_phys)
+    cascade = []
     conf_t = t_phys if confirmed_t is None else min(confirmed_t, t_phys)
     work_conf = phase_state(mem, task, conf_t)["work"]
     done_ids, done_min = confirmed_segments(task, work_conf, mem)
@@ -185,6 +190,8 @@ def interrupt(mem, tid, t_phys, reason, status="ok", confirmed_t=None, blocked_e
     unconf = [sid for sid in phys_ids if sid not in done_ids]
     if unconf:
         mem.unconfirmed.setdefault(tid, []).extend((task["job"], sid) for sid in unconf)
+        # done physically but unknown to us: assume it will be redone until the tractor reports it
+        mem.repeated_work += sum(_seg(mem, task["job"], sid)["minutes"] for sid in unconf)
     lost = ps["work"] - phys_min           # minutes into a section that was not finished
     mem.lost_work += max(0.0, lost)
     for s in job["segments"]:
@@ -196,19 +203,30 @@ def interrupt(mem, tid, t_phys, reason, status="ok", confirmed_t=None, blocked_e
     node, extra, xy = ps["node"], 0.0, ps["xy"]
     if ps["edge"] is not None and status == "ok":
         e = ps["edge"]
+        back, ahead = e["elapsed"], e["minutes"] - e["elapsed"]
         if blocked_edge is not None and frozenset((e["a"], e["b"])) == blocked_edge:
-            node, extra = e["a"], e["elapsed"]                 # turn back to the last junction
+            node, extra = e["a"], back                         # never continue along a closed road
+        elif back < ahead:
+            node, extra = e["a"], back                         # nearer to turn back
         else:
-            node, extra = e["b"], e["minutes"] - e["elapsed"]  # carry on to the next junction
+            node, extra = e["b"], ahead                        # nearer to carry on
         xy = navigation.points(mem)[node]
     unit = ps["unit"]
     if task["swap"] and t_phys < next((p["t1"] for p in task["phases"] if p["kind"] == "swap"), INF):
-        mem.implements[task["unit"]].update(holder=None, free_at=max(t_phys, mem.implements[task["unit"]]["free_at"]))
+        if mem.implements[task["unit"]]["holder"] == tid:     # only release what we actually held
+            mem.implements[task["unit"]].update(holder=None, free_at=max(t_phys, mem.implements[task["unit"]]["free_at"]))
         if task["yard_at"] is not None and t_phys >= task["yard_at"]:
             unit = None                                        # old implement already left at the yard
         elif task["prev_unit"]:
             mem.implements[task["prev_unit"]]["holder"] = tid
             unit = task["prev_unit"]
+            # The hand-over of prev_unit at the yard will not happen now: any tractor whose trip
+            # counted on receiving it must stop and be re-planned too (never two holders).
+            for oid, other in sorted(mem.active.items()):
+                if other["swap"] and other["unit"] == task["prev_unit"]:
+                    sw = next((ph["t1"] for ph in other["phases"] if ph["kind"] == "swap"), INF)
+                    if t_phys < sw:
+                        cascade.append(oid)
     tr.update(pos=node, available_at=t_phys + extra, fuel=ps["fuel"] - extra, battery=ps["battery"],
               distance_km=round(ps["km"] + extra / mem.cell_minutes * mem.km_per_cell, 2),
               implement=unit, xy=xy)
@@ -224,7 +242,8 @@ def interrupt(mem, tid, t_phys, reason, status="ok", confirmed_t=None, blocked_e
         new = PARTIAL if any(s["status"] == "done" for s in job["segments"]) else REASSIGN
         mem.set_status(task["job"], new, f"{tid} stopped ({reason}); "
                        f"{job['work_minutes'] - job['remaining']:.0f} of {job['work_minutes']} min kept", at=t_phys)
-        mem.recoveries.append(dict(job=task["job"], t=t_phys, reason=reason, from_tractor=tid))
+        if recovery:
+            mem.recoveries.append(dict(job=task["job"], t=t_phys, reason=reason, from_tractor=tid))
     else:
         job["completed_at"] = t_phys
         mem.set_status(task["job"], COMPLETED, f"all sections confirmed by {tid}", at=t_phys)
@@ -234,6 +253,13 @@ def interrupt(mem, tid, t_phys, reason, status="ok", confirmed_t=None, blocked_e
                 remaining=job["remaining"], total=job["work_minutes"], lost_minutes=round(max(0.0, lost), 1),
                 unconfirmed=len(unconf), stopped_at=node)
     mem.record("WORK_PRESERVED", at=t_phys, **info)
+    for oid in cascade:
+        if oid in mem.active:
+            sub = interrupt(mem, oid, t_phys, f"implement hand-over from {tid} cancelled", status="ok",
+                            recovery=recovery)
+            info.setdefault("cascade", []).append(sub)
+    if task["swap"] and task["prev_unit"] and mem.implements[task["prev_unit"]]["holder"] == tid and status == "ok":
+        tr["implement"] = task["prev_unit"]
     return info
 
 
@@ -475,17 +501,27 @@ def handle(mem, msg):
                 else:
                     s.update(status="done", owner=None, done_by=f"{tid} (reported late)", done_at=t)
                     kept += 1
+                    mem.repeated_work -= s["minutes"]     # it was not redone after all
                 mem.refresh_remaining(jid)
                 if mem.jobs[jid]["remaining"] <= EPS and mem.jobs[jid]["status"] != COMPLETED:
                     mem.jobs[jid]["completed_at"] = t
                     mem.set_status(jid, COMPLETED, "finished sections reported after reconnect")
-            mem.repeated_work += repeated
             cause["lead"] = (f"{tid} reconnected at {mem.clock(t)}. It reported {kept} extra finished "
                              f"section(s), now counted as done" + (f"; {repeated:.0f} min had already been redone."
                                                                      if repeated else "."))
         else:
             return
         mem.record("COMMUNICATION_RESTORED", tractor=tid)
+    elif typ == "FUEL_DELIVERED":
+        tid = p["tractor"]
+        tr = mem.tractors[tid]
+        mem.pending_delivery.discard(tid)
+        if tr["status"] != "ok":
+            return
+        tr["fuel"] = tr["tank_minutes"]
+        mem.record("FUEL_DELIVERED", tractor=tid, at_node=tr["pos"])
+        cause["lead"] = f"A fuel delivery reached {tid} at {tr['pos']} at {mem.clock(t)}; it is back in service."
+
     elif typ == "TRACTOR_DELAYED":
         tid, d = p["tractor"], float(p["minutes"])
         task = mem.active.get(tid)
@@ -568,7 +604,67 @@ def _verb(kind):
 # ======================================================================
 # re-planning: Fleet -> Navigation -> Safety -> save -> Explainer
 # ======================================================================
+def _outcome_key(m, tasks):
+    """(1) priority finished on time, (2) priority finished, (3) priority-weighted lateness,
+    counting both work under way and the new plan. Lower tuple is better."""
+    allt = list(m.active.values()) + list(tasks)
+    on_time = sum(m.jobs[t["job"]]["priority"] for t in allt if t["end"] <= t["deadline"] + EPS)
+    done = sum(m.jobs[t["job"]]["priority"] for t in allt)
+    late = sum(m.jobs[t["job"]]["priority"] * max(0.0, t["end"] - t["deadline"]) for t in allt)
+    return (-on_time, -done, round(late, 6))
+
+
+def _consider_redirect(mem, cause):
+    """A tractor that is only DRIVING to a job (no work started) may be turned around if that gives
+    a strictly better outcome on the first three goals. Work already started is never disturbed."""
+    if mem.policy != "smart" or cause["type"] == "initial":
+        return
+    movers = sorted(tid for tid, a in mem.active.items()
+                    if not a["work_started"] and mem.tractors[tid]["status"] == "ok")
+    if not movers:
+        return
+    keep_tasks, _, _ = make_plan(mem, "smart")
+    base = _outcome_key(mem, keep_tasks)
+    saved = mem.frames, mem.log
+    mem.frames, mem.log = [], []
+    try:
+        trial = copy.deepcopy(mem)
+    finally:
+        mem.frames, mem.log = saved
+    for tid in movers:
+        if tid in trial.active:      # may already be stopped by a cancelled implement hand-over
+            interrupt(trial, tid, trial.now, "redirected by new plan", status="ok", recovery=False)
+    new_tasks, _, _ = make_plan(trial, "smart")
+    better = _outcome_key(trial, new_tasks)
+    if better < base:
+        names = []
+        for tid in movers:
+            if tid not in mem.active:
+                continue
+            job = mem.active[tid]["job"]
+            interrupt(mem, tid, mem.now, "redirected by new plan", status="ok", recovery=False)
+            names.append(f"{tid} (was driving to {job})")
+        cause["lead"] = (cause.get("lead", "") + f" To finish more high-priority work on time, "
+                         f"{', '.join(names)} changed course before starting work; nothing finished is affected.").strip()
+        mem.record("REDIRECTED", tractors=movers, before=list(base), after=list(better))
+
+
+def _check_stranded(mem):
+    """A tractor that cannot even reach the yard on the fuel it has is stranded. Call a fuel
+    delivery to where it stands (arrives after recovery_minutes). Its implement stays with it."""
+    for tid, tr in sorted(mem.tractors.items()):
+        if tr["status"] != "ok" or tid in mem.active or tid in mem.pending_delivery:
+            continue
+        if tr["pos"] != "YARD" and tr["fuel"] < navigation.travel(mem, tr["pos"], "YARD"):
+            mem.pending_delivery.add(tid)
+            mem.record("LOW_ENERGY", source=tid, tractor=tid, fuel=tr["fuel"], stranded=True,
+                       action=f"fuel delivery called, arrives in {mem.recovery_minutes} min")
+            _internal(mem, mem.now + mem.recovery_minutes, "FUEL_DELIVERED", tractor=tid)
+
+
 def replan(mem, cause):
+    _check_stranded(mem)
+    _consider_redirect(mem, cause)
     old = [dict(t) for t in mem.plan]
     for t in old:
         mem.prev_owner[t["job"]] = t["tractor"]

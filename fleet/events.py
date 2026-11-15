@@ -19,7 +19,7 @@ SCENARIO_TYPES = {
     "route_cleared": "ROUTE_CLEARED", "priority_change": "PRIORITY_CHANGED",
     "new_job": "JOB_SUBMITTED", "fuel_drop": "LOW_ENERGY",
     "comm_lost": "COMMUNICATION_LOST", "comm_restored": "COMMUNICATION_RESTORED",
-    "delay": "TRACTOR_DELAYED",
+    "delay": "TRACTOR_DELAYED", "fuel_delivered": "FUEL_DELIVERED",
 }
 
 

@@ -1,0 +1,297 @@
+{
+  "scenarios": 200,
+  "failures": [
+    {
+      "seed": 2,
+      "jobs": 8,
+      "events": 3,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 15 < 16 (FCFS)"
+    },
+    {
+      "seed": 17,
+      "jobs": 6,
+      "events": 5,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 0 < 3 (FCFS)"
+    },
+    {
+      "seed": 25,
+      "jobs": 9,
+      "events": 5,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 9 < 10 (FCFS)"
+    },
+    {
+      "seed": 35,
+      "jobs": 5,
+      "events": 2,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 11 < 12 (FCFS)"
+    },
+    {
+      "seed": 50,
+      "jobs": 5,
+      "events": 7,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 3 < 5 (FCFS)"
+    },
+    {
+      "seed": 99,
+      "jobs": 8,
+      "events": 7,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 6 < 9 (FCFS)"
+    },
+    {
+      "seed": 169,
+      "jobs": 5,
+      "events": 2,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 10 < 11 (FCFS)"
+    },
+    {
+      "seed": 185,
+      "jobs": 10,
+      "events": 5,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 4 < 5 (FCFS)"
+    }
+  ],
+  "totals": {
+    "smart": {
+      "on_time": 1076,
+      "pw_on_time": 2364,
+      "completed": 1316,
+      "travel": 63365.0,
+      "violations": 0,
+      "runs": 200
+    },
+    "fcfs": {
+      "on_time": 751,
+      "pw_on_time": 1539,
+      "completed": 1257,
+      "travel": 71284.0,
+      "violations": 0,
+      "runs": 200
+    },
+    "nearest": {
+      "on_time": 625,
+      "pw_on_time": 1270,
+      "completed": 1253,
+      "travel": 74843.0,
+      "violations": 0,
+      "runs": 200
+    }
+  },
+  "clearest_failure": {
+    "seed": 35,
+    "jobs": 5,
+    "events": 2,
+    "policy": "smart",
+    "kind": "worse than baseline",
+    "detail": "on-time priority 11 < 12 (FCFS)"
+  },
+  "clearest_failure_scenario": {
+    "name": "adversarial seed 35",
+    "start_clock": "06:00",
+    "yard": [
+      0,
+      0
+    ],
+    "minutes_per_cell": 4,
+    "swap_minutes": 10,
+    "refuel_minutes": 15,
+    "recharge_minutes": 20,
+    "km_per_cell": 1,
+    "recovery_minutes": 30,
+    "fields": [
+      {
+        "id": "F1",
+        "x": 4,
+        "y": 3
+      },
+      {
+        "id": "F2",
+        "x": 9,
+        "y": 7
+      },
+      {
+        "id": "F3",
+        "x": 1,
+        "y": 7
+      },
+      {
+        "id": "F4",
+        "x": 9,
+        "y": 6
+      },
+      {
+        "id": "F5",
+        "x": 4,
+        "y": 4
+      },
+      {
+        "id": "F6",
+        "x": 2,
+        "y": 0
+      },
+      {
+        "id": "F7",
+        "x": 3,
+        "y": 7
+      },
+      {
+        "id": "F8",
+        "x": 5,
+        "y": 6
+      },
+      {
+        "id": "F9",
+        "x": 3,
+        "y": 3
+      }
+    ],
+    "implements": [
+      {
+        "id": "SP1",
+        "type": "sprayer"
+      },
+      {
+        "id": "MW1",
+        "type": "mower"
+      },
+      {
+        "id": "SD1",
+        "type": "seeder"
+      }
+    ],
+    "tractors": [
+      {
+        "id": "T1",
+        "capabilities": [
+          "mow",
+          "seed",
+          "spray"
+        ],
+        "compatible_implements": [
+          "mower",
+          "seeder",
+          "sprayer"
+        ],
+        "tank_minutes": 180,
+        "battery_minutes": 90,
+        "implement": null
+      },
+      {
+        "id": "T2",
+        "capabilities": [
+          "mow",
+          "seed",
+          "spray"
+        ],
+        "compatible_implements": [
+          "mower",
+          "seeder",
+          "sprayer"
+        ],
+        "tank_minutes": 260,
+        "battery_minutes": 130,
+        "implement": null
+      },
+      {
+        "id": "T3",
+        "capabilities": [
+          "mow",
+          "seed",
+          "spray"
+        ],
+        "compatible_implements": [
+          "mower",
+          "seeder",
+          "sprayer"
+        ],
+        "tank_minutes": 180,
+        "battery_minutes": 90,
+        "implement": null
+      }
+    ],
+    "jobs": [
+      {
+        "id": "J1",
+        "type": "spray",
+        "implement": "sprayer",
+        "field": "F2",
+        "priority": 1,
+        "deadline": 294,
+        "work_minutes": 35
+      },
+      {
+        "id": "J2",
+        "type": "spray",
+        "implement": "sprayer",
+        "field": "F2",
+        "priority": 2,
+        "deadline": 553,
+        "work_minutes": 45
+      },
+      {
+        "id": "J3",
+        "type": "mow",
+        "implement": "mower",
+        "field": "F5",
+        "priority": 1,
+        "deadline": 415,
+        "work_minutes": 20
+      },
+      {
+        "id": "J4",
+        "type": "spray",
+        "implement": "sprayer",
+        "field": "F3",
+        "priority": 3,
+        "deadline": 494,
+        "work_minutes": 50
+      },
+      {
+        "id": "J5",
+        "type": "mow",
+        "implement": "mower",
+        "field": "F8",
+        "priority": 2,
+        "deadline": 322,
+        "work_minutes": 60
+      }
+    ],
+    "events": [
+      {
+        "t": 178,
+        "type": "breakdown",
+        "tractor": "T2"
+      },
+      {
+        "t": 227,
+        "type": "new_job",
+        "job": {
+          "id": "J6",
+          "type": "seed",
+          "implement": "seeder",
+          "field": "F8",
+          "priority": 3,
+          "deadline": 378,
+          "work_minutes": 40
+        }
+      }
+    ],
+    "narrow_roads": []
+  },
+  "smart_not_worse_than_fcfs": "192/200"
+}

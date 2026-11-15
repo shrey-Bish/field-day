@@ -19,12 +19,12 @@ Same farm, same jobs, same events, same hard rules (capability, implement, fuel,
 | Recharge stops | 2 | 2 | 2 |
 | Implement changes | **5** | 9 | 8 |
 | Repeated or lost work (min) | **0** | 4 | **0** |
-| Avg time until interrupted work resumes (min) | 247 | 128 | - |
+| Avg time until interrupted work resumes (min) | 298 | 128 | - |
 | Rule violations in what actually ran | 0 | 0 | 0 |
 | Deadline warnings raised in plans | 0 | 10 | 12 |
 | Plans rejected by the safety agent | 0 | 0 | 0 |
 | Re-plans | 4 | 4 | 4 |
-| Slowest re-plan (ms) | 124.8 | 0.8 | 0.8 |
+| Slowest re-plan (ms) | 543.4 | 1.4 | 2.3 |
 
 ## Against the first-come-first-served baseline
 
@@ -39,23 +39,23 @@ Same farm, same jobs, same events, same hard rules (capability, implement, fuel,
 
 **06:00 - initial (plan v1)**
 
-- Starting plan: 10 jobs on 3 tractors, 276 min of driving, every job before its deadline.
+- Starting plan: 10 jobs on 3 tractors, 292 min of driving, every job before its deadline.
 - J2 (spray, F1) -> T1, 06:22-07:02: it can spray with a sprayer; it keeps the fleet's total plan better (next best: T3); T2 cannot take it; it is done 88 min before the 08:30 deadline.
 - J4 (mow, F2) -> T2, 06:34-07:19: it can mow with a mower; it keeps the fleet's total plan better (next best: T3); it is done 161 min before the 10:00 deadline.
 - J7 (seed, F4) -> T3, 06:42-07:37: it can seed with a seeder; it finishes at 07:37, 103 min sooner than T2; T1 cannot take it; it is done 163 min before the 10:20 deadline.
 - J3 (seed, F6) -> T3, 07:57-08:57: it can seed with a seeder; T1 and T2 cannot take it; it is done 123 min before the 11:00 deadline.
 - J5 (spray, F7) -> T1, 07:38-08:28: it can spray with a sprayer; T2 and T3 cannot take it; it is done 182 min before the 11:30 deadline.
-- J9 (mow, F7) -> T2, 08:28-09:03: it can mow with a mower; it finishes at 09:03, 121 min sooner than T1; it is done 217 min before the 12:40 deadline.
-- J1 (mow, F8) -> T2, 09:19-10:09: it can mow with a mower; it finishes at 10:09, 86 min sooner than T1; it is done 231 min before the 14:00 deadline.
-- J8 (spray, F5) -> T1, 08:44-09:29: it can spray with a sprayer; T2 and T3 cannot take it; it is done 241 min before the 13:30 deadline.
+- J1 (mow, F8) -> T2, 07:59-08:49: it can mow with a mower; it finishes at 08:49, 166 min sooner than T1; it is done 311 min before the 14:00 deadline.
+- J9 (mow, F7) -> T2, 09:05-09:40: it can mow with a mower; it finishes at 09:40, 84 min sooner than T1; it is done 180 min before the 12:40 deadline.
 - J10 (seed, F3) -> T3, 10:13-11:03: it can seed with a seeder; T1 and T2 cannot take it; it is done 167 min before the 13:50 deadline.
-- J6 (mow, F3) -> T3, 12:08-12:48: it can mow with a mower; it drives 40 min instead of 60 for T1; it is done 12 min before the 13:00 deadline.
+- J6 (mow, F3) -> T3, 12:08-12:48: it can mow with a mower; it drives 40 min instead of 68 for T1; it is done 12 min before the 13:00 deadline.
+- J8 (spray, F5) -> T1, 08:44-09:29: it can spray with a sprayer; T2 and T3 cannot take it; it is done 241 min before the 13:30 deadline.
 
 **07:35 - tractor failed (plan v2)**
 
-- Tractor T2 broke down at 07:35 while mowing F7 (J9). 0 of 7 sections (0 of 35 min) were confirmed done and are kept.
-- J9 moved to T1; only the remaining 35 of 35 minutes are needed (0 sections already done). T1 was chosen because it can mow with a mower; T3 could only finish after the deadline; it is done 23 min before the 12:40 deadline.
-- J1 moved from T2 to T1 because it can mow with a mower; it finishes at 13:23, 19 min sooner than T3; it is done 37 min before the 14:00 deadline.
+- Tractor T2 broke down at 07:35 while mowing F8 (J1). 0 of 10 sections (0 of 50 min) were confirmed done and are kept.
+- J9 moved from T2 to T1 because it can mow with a mower; T3 could only finish after the deadline; it is done 23 min before the 12:40 deadline.
+- J1 moved to T1; only the remaining 50 of 50 minutes are needed (0 sections already done). T1 was chosen because it can mow with a mower; it finishes at 13:23, 19 min sooner than T3; it is done 37 min before the 14:00 deadline.
 - Everything else stays as planned (4 jobs).
 - Work already under way is kept as it is (J5, J7).
 

@@ -15,8 +15,11 @@ from .memory import PLANNABLE
 
 BEAM_WIDTH = 30
 STABILITY_PENALTY = 15      # minutes-equivalent cost of moving an already-planned job to another tractor
-FRAGILITY_CANDIDATES = 6     # how many top schedules get the "what if a tractor fails" check
-FRAGILITY_TOLERANCE = 0.05   # schedules within 5% of the best cost count as "similar"
+FRAGILITY_CANDIDATES = 8     # how many top schedules get the "what if a tractor fails" check
+LS_STARTS = 3                # local search polishes the best few candidates
+LS_BUDGET = 400              # max schedule re-builds per polish
+FRAGILITY_MODE = "all"       # "all": fail before each task; "first": fail at the start only
+FRAGILITY_WEIGHT = 0.1       # cost minutes accepted per unit of fragility (chosen on seeds 1-100, checked on 101-200)
 SLACK_BUFFER = 15            # minutes of deadline slack we like to keep, to absorb delays
 SLACK_WEIGHT = 0.3
 
@@ -78,6 +81,7 @@ def build_task(mem, tv, job, units, field_free):
             phases.append(dict(kind=kind, t0=st["t"], t1=until, at=st["pos"]))
             st["t"] = until
 
+    depart = tv["t"]
     unit, prev, swap, yard_at, take_at = tv["unit"], tv["unit"], False, None, None
     if unit is not None and units[unit].get("out_of_service"):
         unit = None
@@ -87,6 +91,12 @@ def build_task(mem, tv, job, units, field_free):
         if not free:
             return None
         u = min(free, key=lambda u: (u["free_at"], u["id"]))
+        # If another tractor only gives this implement back in a task that has not started yet,
+        # wait until that hand-over is committed before setting off (keeps ownership exclusive
+        # even if that tractor's later plan changes).
+        if u.get("release_commit") is not None and u["release_commit"] > st["t"]:
+            st["t"] = u["release_commit"]
+            depart = st["t"]
         if not go(YARD):
             return None
         yard_at = st["t"]
@@ -120,7 +130,7 @@ def build_task(mem, tv, job, units, field_free):
     hold("wait_field", start)
     phases.append(dict(kind="work", t0=start, t1=start + work, at=field))
     segs = [s["id"] for s in job.get("segments", []) if s["status"] != "done"]
-    return dict(tractor=tv["id"], job=job["id"], field=field, type=job["type"], depart=tv["t"],
+    return dict(tractor=tv["id"], job=job["id"], field=field, type=job["type"], depart=depart,
                 legs=legs, phases=phases, travel=st["trav"], distance_km=_km(mem, st["trav"]),
                 swap=swap, refuel=refuel, recharge=recharge, unit=unit, prev_unit=prev,
                 yard_at=yard_at, take_at=take_at, start=start, end=start + work, work=work,
@@ -135,7 +145,8 @@ def _apply(task, tv, units, field_free):
     if task["swap"]:
         if task["prev_unit"] and task["prev_unit"] in units:
             units[task["prev_unit"]].update(holder=None, free_at=max(units[task["prev_unit"]]["free_at"],
-                                                                     task["yard_at"]))
+                                                                     task["yard_at"]),
+                                            release_commit=task["depart"])
         units[task["unit"]]["holder"] = tv["id"]
     tv.update(t=task["end"], pos=task["field"], fuel=task["fuel_after"],
               battery=task["battery_after"], km=task["odometer_km"], unit=task["unit"])
@@ -165,7 +176,9 @@ def _free_slot(spans, t, dur, me):
 
 def initial_free(mem):
     """Fields and single-lane roads already taken by work that is under way."""
-    ff = {a["field"]: a["end"] for a in mem.active.values()}
+    ff = {}
+    for a in mem.active.values():
+        ff[a["field"]] = max(ff.get(a["field"], 0), a["end"])   # latest finish if several queue there
     for a in mem.active.values():
         for key, r0, r1, tid in a.get("reservations", ()):
             if r1 > mem.now:
@@ -301,9 +314,10 @@ def _fragility(mem, state):
     Fragility = average damage over all these failure scenarios. Lower = more robust."""
     scenarios, total = 0, 0.0
     tractors = sorted({t["tractor"] for t in state["tasks"]})
+    mode = mem.scenario.get("fragility_mode", FRAGILITY_MODE)
     for k in tractors:
         mine = [t for t in state["tasks"] if t["tractor"] == k]
-        for i in range(len(mine)):
+        for i in (range(len(mine)) if mode == "all" else range(min(1, len(mine)))):
             lost = mine[i:]
             fail_t = lost[0]["depart"]
             others = {tid: dict(tv) for tid, tv in state["tvs"].items() if tid != k}
@@ -363,7 +377,20 @@ def _repair(mem, jobs, prev_owner):
     return s
 
 
-def _beam(mem, width=BEAM_WIDTH):
+def _sig(c, exact):
+    if exact:   # everything that influences the future: identical states have identical futures
+        return (frozenset(c["left"]),
+                tuple(sorted((k, v["pos"], v["t"], v["unit"], v["fuel"], v["battery"]) for k, v in c["tvs"].items())),
+                tuple(sorted((k, u["holder"], u["free_at"], u.get("release_commit")) for k, u in c["units"].items())),
+                tuple(sorted((str(k), str(v)) for k, v in c["field_free"].items())))
+    return (frozenset(c["left"]),
+            tuple(sorted((k, v["pos"], v["t"], v["unit"]) for k, v in c["tvs"].items())),
+            frozenset((t["job"], t["tractor"]) for t in c["tasks"]))
+
+
+def _beam(mem, width=BEAM_WIDTH, exact=False):
+    """Bounded beam search over whole-fleet schedules. exact=True keeps every distinct state
+    (exhaustive search with exact duplicate merging) - only for small instances / verification."""
     jobs = plannable_jobs(mem)
     prev_owner = dict(getattr(mem, "prev_owner", {}))
     root = dict(units=copy.deepcopy(mem.implements), tvs=_views(mem),
@@ -389,51 +416,181 @@ def _beam(mem, width=BEAM_WIDTH):
                     children.append(c); grown = True
             if not grown:
                 finals.append(s)
-        # de-duplicate states that reached the same situation by different orders
+        # merge states that reached the same situation by different orders (keep the best one)
         seen, uniq = set(), []
         children.sort(key=lambda c: (_key(c, jobs), [(t["job"], t["tractor"]) for t in c["tasks"]]))
         for c in children:
-            sig = (frozenset(c["left"]),
-                   tuple(sorted((k, v["pos"], v["t"], v["unit"]) for k, v in c["tvs"].items())),
-                   frozenset((t["job"], t["tractor"]) for t in c["tasks"]))
+            sig = _sig(c, exact)
             if sig in seen:
                 continue
             seen.add(sig); uniq.append(c)
-        beam = uniq[:width]
+        beam = uniq if exact else uniq[:width]
     return jobs, finals, prev_owner, expansions
 
 
-def _smart(mem, width=BEAM_WIDTH):
+def _seed_from_pairs(mem, pairs, jobs, prev_owner, origin):
+    s = _replay(mem, pairs, jobs)
+    if s is None:
+        return None
+    s["cost"] = sum(_task_cost(mem, t, prev_owner) for t in s["tasks"])
+    s["origin"] = origin
+    return s
+
+
+def _wfa_seed(mem, jobs, prev_owner):
+    """k-Vac: the Work Function Algorithm picks the tractor for each job; we then build the
+    real schedule (implements, fuel, battery, roads) for that choice, falling back to the best
+    feasible tractor when WFA's choice cannot do the job."""
+    from .kvac import wfa_assign
+    tvs = _views(mem)
+    pairs = wfa_assign(mem, tvs, jobs)
+    s = dict(units=copy.deepcopy(mem.implements), tvs=tvs, field_free=initial_free(mem),
+             tasks=[], left=[j["id"] for j in jobs], cost=0.0, origin="kvac-wfa")
+    for jid, tid in pairs:
+        order = [tid] + sorted(t for t in s["tvs"] if t != tid)
+        for cand in order:
+            task = build_task(mem, s["tvs"][cand], mem.jobs[jid], s["units"], s["field_free"])
+            if task is not None:
+                _apply(task, s["tvs"][cand], s["units"], s["field_free"])
+                s["tasks"].append(task); s["left"].remove(jid)
+                s["cost"] += _task_cost(mem, task, prev_owner)
+                break
+    return s
+
+
+def candidates(mem, width=BEAM_WIDTH):
+    """Every candidate whole-fleet schedule SYNTERRA considers, tagged by where it came from."""
     jobs, finals, prev_owner, expansions = _beam(mem, width)
-    # Always also consider the greedy schedule, so the beam can never do worse than greedy.
+    for f in finals:
+        f.setdefault("origin", "beam")
     g_tasks, _ = _greedy(mem)
-    seed = _replay(mem, [(t["job"], t["tractor"]) for t in g_tasks], jobs)
-    if seed is not None:
-        seed["cost"] = sum(_task_cost(mem, t, prev_owner) for t in seed["tasks"])
-        finals.append(seed)
+    seeds = (("greedy", g_tasks),
+             ("fcfs", _plan_in_order(mem, lambda o, job: (o[0]["t"], o[0]["id"]))[0]),
+             ("nearest", _plan_in_order(mem, lambda o, job: (travel(mem, o[0]["pos"], job["field"]),
+                                                            o[0]["id"]))[0]))
+    for origin, tasks in seeds:
+        sd = _seed_from_pairs(mem, [(t["job"], t["tractor"]) for t in tasks], jobs, prev_owner, origin)
+        if sd is not None:
+            finals.append(sd)
+    finals.append(_wfa_seed(mem, jobs, prev_owner))
     if mem.plan:
         rep = _repair(mem, jobs, prev_owner)
         rep["origin"] = "repair"
         finals.append(rep)
+    return jobs, finals, prev_owner, expansions
+
+
+def _local_search(mem, state, jobs, prev_owner, budget=LS_BUDGET):
+    """Polish a schedule with classic vehicle-routing moves on its (job, tractor) sequence:
+    reassign one job to another tractor, move one job to another position, swap two jobs, and
+    insert a job that is still unplanned. Accept only strict improvements of the lexicographic
+    objective. Deterministic (fixed move order) and bounded by `budget` re-builds."""
+    def rebuild(pairs):
+        st = dict(units=copy.deepcopy(mem.implements), tvs=_views(mem), field_free=initial_free(mem),
+                  tasks=[], left=[j["id"] for j in jobs], cost=0.0, origin=state.get("origin", "beam") + "+ls")
+        for jid, tid in pairs:
+            if tid not in st["tvs"]:
+                return None
+            task = build_task(mem, st["tvs"][tid], mem.jobs[jid], st["units"], st["field_free"])
+            if task is None:
+                return None
+            _apply(task, st["tvs"][tid], st["units"], st["field_free"])
+            st["tasks"].append(task); st["left"].remove(jid)
+            st["cost"] += _task_cost(mem, task, prev_owner)
+        return st
+
+    best = state
+    best_k = _key(best, jobs)
+    pairs = [(t["job"], t["tractor"]) for t in best["tasks"]]
+    tids = sorted(_views(mem))
+    used = 0
+    improved = True
+    while improved and used < budget:
+        improved = False
+        n = len(pairs)
+        moves = []
+        for jid in sorted(best["left"]):                      # insert an unplanned job
+            for pos in range(n + 1):
+                for tid in tids:
+                    moves.append(pairs[:pos] + [(jid, tid)] + pairs[pos:])
+        for i in range(n):                                    # reassign one job
+            for tid in tids:
+                if tid != pairs[i][1]:
+                    moves.append(pairs[:i] + [(pairs[i][0], tid)] + pairs[i + 1:])
+        for i in range(n):                                    # move one job elsewhere in the order
+            for j in range(n):
+                if i != j:
+                    q = pairs[:i] + pairs[i + 1:]
+                    moves.append(q[:j] + [pairs[i]] + q[j:])
+        for i in range(n):                                    # swap two jobs
+            for j in range(i + 1, n):
+                q = list(pairs); q[i], q[j] = q[j], q[i]
+                moves.append(q)
+        for q in moves:
+            if used >= budget:
+                break
+            used += 1
+            st = rebuild(q)
+            if st is None:
+                continue
+            k = _key(st, jobs)
+            if k < best_k:
+                best, best_k, pairs, improved = st, k, q, True
+                break
+    return best, used
+
+
+def _smart(mem, width=BEAM_WIDTH):
+    jobs, finals, prev_owner, expansions = candidates(mem, width)
     if not finals:
         return [], {}, {}, {}
     finals.sort(key=lambda s: (_key(s, jobs), [(t["job"], t["tractor"]) for t in s["tasks"]]))
+    polished = []
+    for s0 in finals[:LS_STARTS]:
+        p, _ = _local_search(mem, s0, jobs, prev_owner)
+        if p is not s0:
+            polished.append(p)
+    finals.extend(polished)
+    finals.sort(key=lambda s: (_key(s, jobs), [(t["job"], t["tractor"]) for t in s["tasks"]]))
     best = finals[0]
     bk = _key(best, jobs)
-    # Contingency-aware tie-break: among schedules equal on the first three goals and within
-    # 5% on cost, take the one that survives a single tractor failure best.
-    similar = [s for s in finals[:FRAGILITY_CANDIDATES]
-               if _key(s, jobs)[:3] == bk[:3] and s["cost"] <= best["cost"] * (1 + FRAGILITY_TOLERANCE) + 1e-9]
-    scored = sorted(((_fragility(mem, s), s["cost"], i, s) for i, s in enumerate(similar)),
+    # Contingency-aware choice (hindsight optimisation): among schedules that are equally good on
+    # the first three goals, pick the lowest  cost + FRAGILITY_WEIGHT x fragility.
+    pool, seen = [], set()
+    for s in finals:
+        if _key(s, jobs)[:3] != bk[:3]:
+            continue
+        sig = tuple((t["job"], t["tractor"], t["start"]) for t in s["tasks"])
+        if sig in seen:
+            continue
+        seen.add(sig); pool.append(s)
+        if len(pool) >= FRAGILITY_CANDIDATES:
+            break
+    weight = mem.scenario.get("fragility_weight", FRAGILITY_WEIGHT)
+    scored = sorted(((s["cost"] + weight * _fragility(mem, s), s["cost"], i, s) for i, s in enumerate(pool)),
                     key=lambda x: (x[0], x[1], x[2]))
-    chosen_frag, _, _, chosen = scored[0]
-    best_frag = _fragility(mem, best)
+    _, _, _, chosen = scored[0]
+    wins = {}
+    for s in finals:
+        k = _key(s, jobs)
+        o = s.get("origin", "beam")
+        if o not in wins or k < tuple(wins[o]):
+            wins[o] = list(k)
     info = dict(beam_width=width, expansions=expansions, candidates=len(finals),
-                cost=round(chosen["cost"], 1), fragility=chosen_frag,
-                fragility_of_cheapest=best_frag, picked_for_robustness=chosen is not best,
+                cost=round(chosen["cost"], 1), fragility=_fragility(mem, chosen),
+                fragility_of_cheapest=_fragility(mem, best), picked_for_robustness=chosen is not best,
+                origin=chosen.get("origin", "beam"),
                 mode="repair" if chosen.get("origin") == "repair" else "replan",
-                repair_available=any(f.get("origin") == "repair" for f in finals))
+                best_key_by_origin=wins)
     return chosen["tasks"], chosen["left"], info, prev_owner
+
+
+def exact_best(mem):
+    """Exhaustive search (exact duplicate merging) - the true optimum of the same objective.
+    Exponential: use only for small instances, to measure how close the beam gets."""
+    jobs, finals, prev_owner, expansions = _beam(mem, exact=True)
+    finals.sort(key=lambda s: (_key(s, jobs), [(t["job"], t["tractor"]) for t in s["tasks"]]))
+    return finals[0], _key(finals[0], jobs), expansions
 
 
 def _explain_options(mem, tasks):
@@ -466,10 +623,12 @@ def _explain_options(mem, tasks):
 
 def make_plan(mem, policy="smart"):
     """Returns (tasks, unassigned, why). `why` maps job -> scored options per tractor."""
-    if policy == "fcfs":
-        return _plan_in_order(mem, lambda o, job: (o[0]["t"], o[0]["id"]))
-    if policy == "nearest":
-        return _plan_in_order(mem, lambda o, job: (travel(mem, o[0]["pos"], job["field"]), o[0]["id"]))
+    if policy in ("fcfs", "nearest"):
+        if policy == "fcfs":
+            tasks, un, _ = _plan_in_order(mem, lambda o, job: (o[0]["t"], o[0]["id"]))
+        else:
+            tasks, un, _ = _plan_in_order(mem, lambda o, job: (travel(mem, o[0]["pos"], job["field"]), o[0]["id"]))
+        return tasks, un, _explain_options(mem, tasks)
     if policy == "greedy":
         tasks, unassigned = _greedy(mem)
         return tasks, unassigned, _explain_options(mem, tasks)
