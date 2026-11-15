@@ -18,7 +18,10 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from tractor_agent import AGENT_PORTS, EMPTY_PCT, LOW_PCT, TANK_L, TELEMETRY_ADDR, TractorAgent
+import recovery_agent
+from tractor_agent import (AGENT_PORTS, BATTERY_MOVE_PCT_PER_KM, BATTERY_WORK_PCT_PER_KM, EMPTY_PCT,
+                           FUEL_MOVE_L_PER_KM, FUEL_WORK_L_PER_KM, LOW_PCT, TANK_L, TELEMETRY_ADDR,
+                           TractorAgent)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 BRIDGE = ("127.0.0.1", 10100)
@@ -32,6 +35,7 @@ RAD = math.pi / 180
 MAX_PASSES = 600
 ARRIVE_M = 0.3          # GPS within this of the goal counts as arrived
 CONTACT_TIMEOUT_S = 2.0  # no agent report for this long = out of contact
+FAULT_AFTER_S = 5.0      # out of contact this long while working = faulty; its work is reassigned
 
 
 class Tractor:
@@ -93,6 +97,8 @@ class Pass:
         self.owner = None
         self.busy = False
         self.done = False
+        self.rescue = False       # handed over by the recovery agent after a fault
+        self.seq = 0              # order the recovery agent wants rescued passes done in
 
 
 # --------------------------------------------------------------------------- coordinator
@@ -111,6 +117,8 @@ class Fleet:
         self.sim_time = 0.0
         self.field_id = self.plan_id = self.seg_id = 0
         self.note = ""
+        self.last_recovery = None
+        self.rescue_seq = 0
         os.makedirs(os.path.join(HERE, "logs"), exist_ok=True)
         self.log_path = os.path.join(HERE, "logs", "event-log.txt")
 
@@ -255,6 +263,7 @@ class Fleet:
             self.running = self.started = self.finished = False
             self.sim_time = 0.0
             self.note = ""
+            self.last_recovery = None
             self.plan_id += 1
 
     def build_plan(self):
@@ -267,6 +276,7 @@ class Fleet:
             self.passes, self.segments = [], []
             self.plan_id += 1
             self.note = ""
+            self.last_recovery = None
             uv = f["uv"]
             v_min, v_max = min(p[1] for p in uv), max(p[1] for p in uv)
             u_min = min(p[0] for p in uv)
@@ -322,9 +332,11 @@ class Fleet:
     def assign(self):
         """Give every pass nobody is on right now to the tractors that can still work:
         neighbouring passes stay together, and each tractor's share of the length is in
-        proportion to its speed, so they finish at about the same time."""
+        proportion to its speed, so they finish at about the same time. Passes the recovery
+        agent handed over, and passes waiting on a faulty tractor, are left where they are."""
         active = [t for t in self.tractors if not t.broken]
-        open_ = sorted((p for p in self.passes if not p.done and not p.busy), key=lambda p: p.v)
+        open_ = sorted((p for p in self.passes if not p.done and not p.busy and not p.rescue
+                        and not (p.owner and p.owner.broken)), key=lambda p: p.v)
         for p in open_:
             p.owner = None
         if not active:
@@ -466,6 +478,10 @@ class Fleet:
             if self.started and not self.finished:
                 t.lost_logged = True
                 self.say("Lost contact with %s's agent (no report for %.0f s)." % (t.name, CONTACT_TIMEOUT_S), "event")
+        # Silent for too long while there is work: treat it as faulty and hand its work on.
+        if (self.started and not self.finished and not t.broken and t.reports
+                and now - t.last_report > FAULT_AFTER_S):
+            self.breakdown(t.id, "stopped reporting for %.0f s" % FAULT_AFTER_S, "not reporting")
 
     def watch_levels(self, t):
         """Fuel and battery, as the tractor's agent reports them."""
@@ -482,13 +498,20 @@ class Fleet:
                 self.say("%s reports low battery: %.0f%% left." % (t.name, t.battery_pct), "event")
 
     def next_pass(self, t):
-        best, best_d, at_a = None, float("inf"), True
-        for p in self.passes:
-            if p.done or p.busy or p.owner is not t:
-                continue
-            d_a, d_b = math.hypot(p.a - t.u, p.v - t.v), math.hypot(p.b - t.u, p.v - t.v)
-            if min(d_a, d_b) < best_d:
-                best, best_d, at_a = p, min(d_a, d_b), d_a <= d_b
+        """Its own passes first, nearest next; then any passes the recovery agent gave it,
+        in the order it chose (it priced them from where this tractor finishes its own)."""
+        mine = [p for p in self.passes if not p.done and not p.busy and p.owner is t]
+        own = [p for p in mine if not p.rescue]
+        best, at_a = None, True
+        if own:
+            best_d = float("inf")
+            for p in own:
+                d_a, d_b = math.hypot(p.a - t.u, p.v - t.v), math.hypot(p.b - t.u, p.v - t.v)
+                if min(d_a, d_b) < best_d:
+                    best, best_d, at_a = p, min(d_a, d_b), d_a <= d_b
+        elif mine:
+            best = min(mine, key=lambda p: p.seq)
+            at_a = math.hypot(best.a - t.u, best.v - t.v) <= math.hypot(best.b - t.u, best.v - t.v)
         if not best:
             return False
         best.busy = True
@@ -544,6 +567,8 @@ class Fleet:
             before = self.snapshot()
             note = ""
             p = t.pass_
+            stop = (t.u, t.v)                            # where it stopped, from its agent's last GPS
+            interrupted = None
             if t.state == "working" and p:               # keep what it finished, release the rest
                 cur = max(p.a, min(p.b, t.u))
                 pct = round(100 * abs(cur - t.seg["u0"]) / max(1.0, p.b - p.a))
@@ -554,6 +579,8 @@ class Fleet:
                     p.b = cur
                 if p.b - p.a < 1:
                     p.done = True
+                else:
+                    interrupted = p
                 p.busy = False
                 note = " partway through pass %d (%d%% of it done and kept)" % (p.id, pct)
             elif p:
@@ -561,16 +588,106 @@ class Fleet:
             t.pass_ = t.seg = t.goal = None
             t.path = []
             t.broken, t.state, t.reason = True, "broken", reason
-            orphans = sum(1 for q in self.passes if not q.done and q.owner is t)
-            self.assign()
-            left = [x for x in self.tractors if not x.broken]
             self.say("%s %s%s." % (t.name, what, note), "event")
-            if left:
-                who = "one tractor" if len(left) == 1 else "%d tractors" % len(left)
-                self.say("New plan: its %d unfinished pass%s shared among the %s still running, keeping neighbouring passes together: %s. Finished work is untouched and no pass has two owners."
-                         % (orphans, " was" if orphans == 1 else "es were", who, self.describe(before)), "plan")
+            self.recover(t, what, stop, interrupted, before)
+
+    # ---- recovery agent
+    def projected_route(self, t):
+        """Where `t` will be when its own remaining path is done, and how much spraying and
+        driving that path still takes (its current pass, then its own passes nearest first)."""
+        pos, work, travel = (t.u, t.v), 0.0, 0.0
+        p = t.pass_
+        if p and not p.done:
+            exit_u = p.b if t.dir > 0 else p.a
+            if t.state == "working":
+                work += abs(exit_u - t.u)
             else:
-                self.say("No tractor is left to take its %d unfinished passes; they are waiting for a repair." % orphans, "plan")
+                if t.goal:
+                    travel += math.hypot(t.goal[0] - t.u, t.goal[1] - t.v)
+                work += p.b - p.a
+            pos = (exit_u, p.v)
+        rest = [q for q in self.passes if q.owner is t and not q.done and not q.busy]
+        own, rescued = [q for q in rest if not q.rescue], sorted((q for q in rest if q.rescue), key=lambda q: q.seq)
+        while own:
+            q = min(own, key=lambda q: min(math.hypot(q.a - pos[0], q.v - pos[1]), math.hypot(q.b - pos[0], q.v - pos[1])))
+            near_a = math.hypot(q.a - pos[0], q.v - pos[1]) <= math.hypot(q.b - pos[0], q.v - pos[1])
+            travel += math.hypot((q.a if near_a else q.b) - pos[0], q.v - pos[1])
+            work += q.b - q.a
+            pos = ((q.b if near_a else q.a), q.v)
+            own.remove(q)
+        for q in rescued:                                # passes it already took over earlier
+            near_a = math.hypot(q.a - pos[0], q.v - pos[1]) <= math.hypot(q.b - pos[0], q.v - pos[1])
+            travel += math.hypot((q.a if near_a else q.b) - pos[0], q.v - pos[1])
+            work += q.b - q.a
+            pos = ((q.b if near_a else q.a), q.v)
+        return pos, work, travel
+
+    def recover(self, faulty, what, stop, interrupted, before):
+        """Triggered by every fault. Prices each of the faulty tractor's unfinished passes for
+        each healthy tractor (distance from where that tractor's own path ends to the work,
+        fuel left, battery left, all from the tractor agents' reports) and assigns them with
+        the Hungarian algorithm. See recovery_agent.py."""
+        now = time.time()
+        orphans = [q for q in self.passes if not q.done and not q.busy and q.owner is faulty]
+        healthy = [x for x in self.tractors if not x.broken and x.in_contact(now)]
+        rec = {"at": self.sim_time, "faulty": faulty.name, "reason": what, "cols": [x.name for x in healthy],
+               "rows": [], "assignments": [], "unassigned": [], "total": 0, "rounds": 0}
+        self.last_recovery = rec
+        if not orphans:
+            self.say("Recovery agent: %s had no unfinished passes, so nothing needs reassigning." % faulty.name, "plan")
+            return
+        if not healthy:
+            rec["unassigned"] = ["pass %d" % q.id for q in orphans]
+            self.say("Recovery agent: no healthy tractor is reporting, so %s's %d unfinished passes wait for a repair."
+                     % (faulty.name, len(orphans)), "plan")
+            return
+
+        items = []
+        for q in sorted(orphans, key=lambda q: q.v):
+            if q is interrupted:                         # pick up exactly where the faulty tractor stopped
+                far = (q.b if abs(stop[0] - q.a) <= abs(stop[0] - q.b) else q.a, q.v)
+                near = (q.a if far[0] == q.b else q.b, q.v)
+                items.append({"pass": q, "label": "Pass %d (rest, from where %s stopped)" % (q.id, faulty.name),
+                              "options": [(near, far)], "length": q.b - q.a})
+            else:
+                items.append({"pass": q, "label": "Pass %d" % q.id,
+                              "options": [((q.a, q.v), (q.b, q.v)), ((q.b, q.v), (q.a, q.v))], "length": q.b - q.a})
+        states = []
+        for x in healthy:
+            finish, work, travel = self.projected_route(x)
+            states.append({"finish": finish,
+                           "fuel_l": x.fuel_l - work / 1000 * FUEL_WORK_L_PER_KM - travel / 1000 * FUEL_MOVE_L_PER_KM,
+                           "batt_pct": x.battery_pct - work / 1000 * BATTERY_WORK_PCT_PER_KM - travel / 1000 * BATTERY_MOVE_PCT_PER_KM})
+
+        result = recovery_agent.plan(items, states)
+
+        self.say("Recovery agent: %s %s. Pricing its %d unfinished pass%s for %s on distance from where each one "
+                 "finishes its own path, fuel left and battery left, then assigning with the Hungarian algorithm."
+                 % (faulty.name, what, len(items), "" if len(items) == 1 else "es", " and ".join(x.name for x in healthy)), "plan")
+        chosen = {}
+        for a in sorted(result["assignments"], key=lambda a: (a["round"], a["item"])):
+            item, x = items[a["item"]], healthy[a["tractor"]]
+            q = item["pass"]
+            q.owner, q.rescue = x, True
+            self.rescue_seq += 1
+            q.seq = self.rescue_seq
+            chosen[a["item"]] = a["tractor"]
+            rec["assignments"].append({"label": item["label"], "to": x.name, "color": x.color, "round": a["round"],
+                                       "cost": round(a["cost"]), "dist": round(a["dist"]),
+                                       "fuel": round(a["fuel_after"]), "batt": round(a["batt_after"])})
+            self.say("%s goes to %s: %.0f m to drive after its own passes, then %.0f%% fuel and %.0f%% battery left (cost %.0f)."
+                     % (item["label"], x.name, a["dist"], a["fuel_after"], a["batt_after"], a["cost"]), "plan")
+        for i in result["unassigned"]:
+            rec["unassigned"].append(items[i]["label"])     # stays with the faulty tractor until it is fixed
+            self.say("%s is not reassigned: no healthy tractor has the fuel and battery to reach it and finish it. "
+                     "It waits for a refuel or repair." % items[i]["label"], "event")
+        for r, row in enumerate(result["first_round"]):
+            rec["rows"].append({"label": items[r]["label"], "cells": [
+                {"cost": round(cell["cost"]) if cell["ok"] else None, "chosen": chosen.get(r) == c}
+                for c, cell in enumerate(row)]})
+        rec["total"], rec["rounds"] = round(result["total"]), result["rounds"]
+        self.say("New plan: %s. Total cost %.0f over %d Hungarian round%s. Finished work is untouched and no pass has two owners."
+                 % (self.describe(before), result["total"], result["rounds"], "" if result["rounds"] == 1 else "s"), "plan")
 
     def repair(self, tid):
         with self.lock:
@@ -583,7 +700,8 @@ class Fleet:
             t.broken, t.state, t.reason = False, "idle", ""
             self.assign()
             self.say("%s is back in service." % t.name, "good")
-            self.say("New plan: the remaining passes were re-split across all running tractors: %s." % self.describe(before), "plan")
+            self.say("New plan: the remaining passes were re-split across all running tractors (passes the recovery agent "
+                     "already handed over stay where they are): %s." % self.describe(before), "plan")
             if self.started and not self.finished and not self.running:
                 self.running = True
 
@@ -598,7 +716,7 @@ class Fleet:
             out = {"fieldId": self.field_id, "planId": self.plan_id, "running": self.running, "started": self.started,
                    "finished": self.finished, "simTime": self.sim_time, "width": self.width_m,
                    "rate": self.rate, "note": self.note, "log": self.log[-60:], "logCount": len(self.log),
-                   "tankL": TANK_L, "lowPct": LOW_PCT,
+                   "tankL": TANK_L, "lowPct": LOW_PCT, "recovery": self.last_recovery,
                    "field": None, "passes": [], "segments": [], "tractors": []}
             w = f["width"] if f else 0.0
             if f:

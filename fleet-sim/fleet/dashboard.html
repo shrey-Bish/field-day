@@ -71,6 +71,18 @@
   #log div.event { border-left-color: var(--bad); }
   #log div.plan { border-left-color: var(--accent); }
   #log div.good { border-left-color: var(--ok); }
+  /* recovery agent panel */
+  .rec-head { font-size: 13px; margin-bottom: 8px; }
+  .rec-head b { color: #ff8a84; }
+  .rec-scroll { overflow-x: auto; }
+  table.rec { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+  table.rec th, table.rec td { padding: 5px 6px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+  table.rec th:first-child, table.rec td:first-child { text-align: left; white-space: normal; }
+  table.rec th { color: var(--muted); font-weight: 600; }
+  table.rec td.pick { background: rgba(63,185,80,.2); color: #8ef09c; font-weight: 700; border-radius: 4px; }
+  table.rec td.no { color: var(--muted); }
+  .rec-list { margin: 10px 0 0; padding-left: 18px; font-size: 12.5px; display: flex; flex-direction: column; gap: 4px; }
+  .rec-list li span { color: var(--muted); }
   #log time { color: var(--muted); margin-right: 6px; font-variant-numeric: tabular-nums; }
   main { position: relative; min-width: 0; }
   #map { height: 100%; width: 100%; background: #0b0f13; }
@@ -144,6 +156,14 @@
         <div><b id="stClock">00:00</b><span>field time</span></div>
       </div>
       <div id="tractors"></div>
+    </section>
+
+    <section id="recBox" hidden>
+      <h2>Recovery agent</h2>
+      <div id="recHead" class="rec-head"></div>
+      <div class="rec-scroll"><table id="recTable" class="rec"></table></div>
+      <ol id="recList" class="rec-list"></ol>
+      <p class="hintline">Cost = metres to drive from where the tractor finishes its own path + fuel penalty + battery penalty. “—” = it could not afford it. Highlighted = chosen by the Hungarian algorithm. The table shows costs before anything was handed out; the list shows each pass's cost in the round it was assigned, after earlier picks moved the tractor's finishing point.</p>
     </section>
 
     <section>
@@ -289,6 +309,7 @@ function render(s) {
   $('stClock').textContent = clock(s.simTime);
 
   renderCards(s, f);
+  renderRecovery(s.recovery);
 
   if (s.logCount !== seenLog) {
     seenLog = s.logCount;
@@ -370,6 +391,42 @@ function renderCards(s, f) {
     set('battery', `${t.batteryPct.toFixed(1)}% (started at ${t.initBattery.toFixed(0)}%)`, t.batteryPct <= s.lowPct ? 'bad' : '');
     set('odo', `${t.odometerKm.toFixed(2)} km`);
     set('task', !f ? 'no field' : `${t.broken ? (t.reason || 'broken down') : LABEL[t.state]} · ${t.passesLeft} passes left`, t.broken ? 'bad' : '');
+  }
+}
+
+// ---------------------------------------------------------------- recovery agent panel
+let seenRec = '';
+function renderRecovery(r) {
+  const key = r ? JSON.stringify(r) : '';
+  if (key === seenRec) return;
+  seenRec = key;
+  $('recBox').hidden = !r;
+  if (!r) return;
+  $('recHead').innerHTML = `${clock(r.at)} · <b>${esc(r.faulty)}</b> ${esc(r.reason)}` +
+    (r.rounds ? ` · ${r.assignments.length} pass${r.assignments.length === 1 ? '' : 'es'} reassigned in ${r.rounds} round${r.rounds === 1 ? '' : 's'}, total cost ${r.total}` : '');
+  const t = $('recTable'); t.innerHTML = '';
+  if (r.rows.length) {
+    const hr = t.insertRow(); const h0 = document.createElement('th'); h0.textContent = 'Work left'; hr.appendChild(h0);
+    for (const c of r.cols) { const th = document.createElement('th'); th.textContent = c; hr.appendChild(th); }
+    for (const row of r.rows) {
+      const tr = t.insertRow(); tr.insertCell().textContent = row.label;
+      for (const cell of row.cells) {
+        const td = tr.insertCell();
+        td.textContent = cell.cost == null ? '—' : cell.cost;
+        td.className = cell.chosen ? 'pick' : cell.cost == null ? 'no' : '';
+      }
+    }
+  }
+  const list = $('recList'); list.innerHTML = '';
+  for (const a of r.assignments) {
+    const li = document.createElement('li');
+    li.innerHTML = `${esc(a.label)} → <b style="color:${a.color}">${esc(a.to)}</b> <span>round ${a.round} · ${a.dist} m · fuel ${a.fuel}% · battery ${a.batt}% after · cost ${a.cost}</span>`;
+    list.appendChild(li);
+  }
+  for (const u of r.unassigned) {
+    const li = document.createElement('li');
+    li.innerHTML = `${esc(u)} → <b style="color:#ff8a84">waiting</b> <span>no tractor can afford it</span>`;
+    list.appendChild(li);
   }
 }
 

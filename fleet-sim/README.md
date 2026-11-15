@@ -39,9 +39,13 @@ From a terminal: `.\run-fleet-sim.ps1` (`-Rebuild`, `-Stop`, `-NoBrowser`).
 3. **Start.** The field is cut into passes along its longest edge and split into three
    side-by-side blocks (faster tractors get more). Each tractor starts at the edge of its block
    and works across it, with curved U-turns between passes.
-4. **Events:** *Break down* / *Repair* on any tractor; tractors that run out of fuel or battery
-   are taken out of service automatically. Unfinished work is re-split among the others, finished
-   work is kept, and the event log explains the new plan in plain language.
+4. **Events:** *Break down* / *Repair* on any tractor; tractors that run out of fuel or battery,
+   or whose agent stops reporting for 5 s, are taken out of service automatically. Each fault
+   triggers the **recovery agent** (`fleet/recovery_agent.py`): it prices every unfinished pass
+   for every healthy tractor (metres from where that tractor finishes its own path to the work,
+   plus fuel and battery penalties, all from the agents' reports) and assigns them with the
+   Hungarian algorithm, in rounds. Finished work is kept, and the event log and the *Recovery
+   agent* panel show the costs and the choices in plain language.
 5. **Agent status:** expand a tractor card to see its agent's live report (GPS position and
    quality, heading, speed, fuel, battery, distance, task, time since last report).
 
@@ -53,6 +57,7 @@ The event log of every run is appended to `fleet/logs/event-log.txt`.
 |---|---|
 | `fleet/coordinator.py` | Central coordinator: planning, assignment, re-planning, monitoring, HTTP API, serves the dashboard |
 | `fleet/tractor_agent.py` | On-board agent per tractor: reads its GPS, tracks fuel and battery, reports telemetry |
+| `fleet/recovery_agent.py` | Runs on every fault: cost of each (unfinished pass, healthy tractor) pair, Hungarian assignment in rounds |
 | `fleet/dashboard.html` | Leaflet dashboard (the "Command Center") |
 | `fleet/bridge/` | C# app hosting three AgOpenWeb `VirtualModuleHub`s; drive commands `place`, `goto`, `path`, `stop`, `rate` |
 | `run-fleet-sim.ps1`, `*.bat` | Start / stop |
