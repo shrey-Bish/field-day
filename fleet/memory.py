@@ -12,14 +12,19 @@ class Memory:
         self.cell_minutes = s.get("minutes_per_cell", 4)
         self.swap_minutes = s.get("swap_minutes", 10)
         self.refuel_minutes = s.get("refuel_minutes", 15)
+        self.recharge_minutes = s.get("recharge_minutes", 20)
         self.recovery_minutes = s.get("recovery_minutes", 30)
+        self.km_per_cell = s.get("km_per_cell", 1)
         self.fields = {f["id"]: f for f in s["fields"]}
         self.implements = {u["id"]: dict(u, holder=None, free_at=0) for u in s["implements"]}
         self.tractors = {}
         for t in s["tractors"]:
             unit = t.get("implement")
+            # fuel: minutes of driving + working left. battery: minutes of working left.
+            # distance_km: total driven so far (the odometer).
             self.tractors[t["id"]] = dict(t, pos="YARD", available_at=0, status="ok",
-                                          fuel=t["tank_minutes"], implement=unit)
+                                          fuel=t["tank_minutes"], battery=t["battery_minutes"],
+                                          distance_km=0, implement=unit)
             if unit:
                 self.implements[unit]["holder"] = t["id"]
         self.jobs = {j["id"]: dict(j, remaining=j["work_minutes"], status="pending", order=i)

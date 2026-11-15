@@ -42,14 +42,16 @@ Clone https://github.com/AgOpenGPS-Official/AgOpenWeb next to this project and g
 http://localhost:5174. Then read its code and Docs to find out how an outside program can
 (a) read fields and tool settings and (b) move or command the tractor. Report what you find before
 writing code. Then build fleet/tractor_link.py with one interface and two versions: AgOpenWebLink
-and SimLink (backup). Start with one tractor shown live in AgOpenWeb.
+and SimLink (used only if AgOpenWeb fails). Start with one tractor shown live in AgOpenWeb doing a spray job.
 ```
 
 ## 7. Dashboard
 ```
 Build the command center as one web page that reads out/timeline.json: a map with fields and
 tractors, a job list with status, the plain-language explanation after each event, a "why?" button
-per job, and a scoreboard against the baseline. Very friendly, clean, self-explanatory, no jargon.
+per job, and a scoreboard against the baseline. Show each tractor's fuel, battery and distance driven.
+Show spraying as it happens: label the tractor "spraying" and shade the field in as it is covered.
+Very friendly, clean, self-explanatory, no jargon.
 ```
 
 ## 8. README and final check

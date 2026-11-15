@@ -4,18 +4,25 @@ For **Reya** and **Mridula**. Hand-in is **5:00 PM today**. Everything still to 
 
 Read `CLAUDE.md` first (5 minutes). It has the design rules and the full description of every item. `PROMPTS.md` has a ready-made prompt for each item, numbered to match.
 
+![Architecture](docs/architecture.png)
+
+## Two decisions made after the first version of this handoff
+
+1. **Every tractor now has fuel, battery and distance.** Fuel burns while driving and working. Battery drains only while working. Distance is the total km driven. The planner already handles all three: it sends a tractor to the yard to refuel or recharge when needed. These numbers must flow through to the safety checks, the comparison and the dashboard (marked **new** below).
+2. **Spraying is the activity we show.** Mowing and seeding jobs stay in the plan, but the live AgOpenWeb tractor runs a spray job and the dashboard shows spraying as it happens.
+
 ## Where things stand
 
 Already written and working (plain Python, nothing to install):
 
 | File | What it does |
 |---|---|
-| `scenario.json` | The farm: 3 tractors, 8 fields, 4 implements, 10 jobs, 3 events |
+| `scenario.json` | The farm: 3 tractors (with fuel tank and battery size), 8 fields, 4 implements, 10 jobs, 3 events |
 | `fleet/memory.py` | The one shared memory and the event log |
 | `fleet/navigation.py` | Travel times between the yard and fields |
-| `fleet/planner.py` | Our planner (`"smart"`) and the baseline (`"fcfs"`) |
+| `fleet/planner.py` | Our planner (`"smart"`) and the baseline (`"fcfs"`), including fuel, battery and distance |
 
-Checked today on the starting plan: ours assigns all 10 jobs with 240 minutes of travel and none late; the baseline uses 508 minutes of travel and finishes J7 late.
+Checked today on the starting plan: ours assigns all 10 jobs with 276 minutes of travel (69 km) and none late; the baseline uses 508 minutes of travel (127 km) and finishes J7 late.
 
 To try it yourself from the repo folder:
 
@@ -39,10 +46,10 @@ Two tracks that can run side by side. Reya's track is a chain (each step needs t
 
 | # | Item | File | Prompt in `PROMPTS.md` | Done when |
 |---|---|---|---|---|
-| 1 | Safety agent | `fleet/safety.py` | 2 | Our plan returns zero violations; the baseline's late job J7 is reported |
-| 2 | Orchestrator and events | `fleet/orchestrator.py` | 3 | All three events are handled, and a test proves the half-done job is reassigned only for its remaining minutes |
+| 1 | Safety agent | `fleet/safety.py` | 2 | Our plan returns zero violations; the baseline's late job J7 is reported. **New:** also check the battery covers each job |
+| 2 | Orchestrator and events | `fleet/orchestrator.py` | 3 | All three events are handled, and a test proves the half-done job is reassigned only for its remaining minutes. **New:** keep each tractor's fuel, battery and distance up to date as tasks finish |
 | 3 | Explainer | `fleet/explainer.py` | 4 | One plain sentence per plan change and a working "why?" answer, with no AI key needed |
-| 4 | Demo run | `run_demo.py` | 5 | `out/event_log.jsonl`, `out/comparison.md` and `out/timeline.json` are written, and we beat the baseline with zero violations |
+| 4 | Demo run | `run_demo.py` | 5 | `out/event_log.jsonl`, `out/comparison.md` and `out/timeline.json` are written, and we beat the baseline with zero violations. **New:** the comparison includes distance in km; the timeline includes fuel, battery and distance per tractor and which fields are being sprayed |
 
 Do these in order. Start with prompt 1 ("Get oriented") if you want a walkthrough of the existing code first.
 
@@ -50,8 +57,8 @@ Do these in order. Start with prompt 1 ("Get oriented") if you want a walkthroug
 
 | # | Item | File | Prompt in `PROMPTS.md` | Done when |
 |---|---|---|---|---|
-| 5 | Tractor link | `fleet/tractor_link.py` | 6 | One interface with two versions (`AgOpenWebLink`, `SimLink`), and one tractor shown live in AgOpenWeb |
-| 6 | Dashboard | one web page | 7 | Map of fields and tractors, job list, explanation after each event, "why?" per job, scoreboard against the baseline |
+| 5 | Tractor link | `fleet/tractor_link.py` | 6 | One interface with two versions (`AgOpenWebLink`, and `SimLink` used only if AgOpenWeb fails), and one tractor shown live in AgOpenWeb. **New:** that tractor runs a spray job |
+| 6 | Dashboard | one web page | 7 | Map of fields and tractors, job list, explanation after each event, "why?" per job, scoreboard against the baseline. **New:** fuel, battery and distance per tractor; spraying shown as it happens (tractor labelled "spraying", field shading in) |
 | 7 | README | `README.md` | 8 | Says how to run it and exactly which parts used AgOpenWeb and which used our simulator |
 
 Start item 5 straight away. It is the biggest unknown: we have not yet confirmed how an outside program gives AgOpenWeb a job or moves the tractor. Find that out first and report it before writing code. AgOpenWeb needs the .NET 10 SDK installed.

@@ -7,9 +7,15 @@ from .navigation import travel, path, YARD, INF
 
 def _views(mem):
     return {tid: dict(id=tid, pos=t["pos"], t=max(t["available_at"], mem.now), fuel=t["fuel"],
+                      battery=t["battery"], km=t["distance_km"],
                       unit=t["implement"], caps=t["capabilities"],
-                      compat=t["compatible_implements"], tank=t["tank_minutes"])
+                      compat=t["compatible_implements"], tank=t["tank_minutes"],
+                      battery_full=t["battery_minutes"])
             for tid, t in mem.tractors.items() if t["status"] == "ok"}
+
+
+def _km(mem, minutes):
+    return round(minutes / mem.cell_minutes * mem.km_per_cell, 1)
 
 
 def build_task(mem, tv, job, units, field_free):
@@ -17,7 +23,7 @@ def build_task(mem, tv, job, units, field_free):
     need = job["implement"]
     if job["type"] not in tv["caps"] or need not in tv["compat"]:
         return None
-    st = dict(t=tv["t"], pos=tv["pos"], fuel=tv["fuel"], trav=0)
+    st = dict(t=tv["t"], pos=tv["pos"], fuel=tv["fuel"], battery=tv["battery"], trav=0)
     legs = []
 
     def go(dest):
@@ -44,22 +50,30 @@ def build_task(mem, tv, job, units, field_free):
 
     field, work = job["field"], job["remaining"]
     back = travel(mem, field, YARD)
-    refuel = False
-    if st["fuel"] < travel(mem, st["pos"], field) + work + back:
+    # Fuel burns while driving and working; the battery drains only while working.
+    # If either is too low for this job, stop at the yard first (one trip covers both).
+    refuel = st["fuel"] < travel(mem, st["pos"], field) + work + back
+    recharge = st["battery"] < work
+    if refuel or recharge:
         if not go(YARD):
             return None
-        st["t"] += mem.refuel_minutes
-        st["fuel"] = tv["tank"]
-        refuel = True
-        if st["fuel"] < travel(mem, st["pos"], field) + work + back:
+        if refuel:
+            st["t"] += mem.refuel_minutes
+            st["fuel"] = tv["tank"]
+        if recharge:
+            st["t"] += mem.recharge_minutes
+            st["battery"] = tv["battery_full"]
+        if st["fuel"] < travel(mem, st["pos"], field) + work + back or st["battery"] < work:
             return None
     if not go(field):
         return None
     start = max(st["t"], field_free.get(field, 0))
     return dict(tractor=tv["id"], job=job["id"], field=field, type=job["type"], depart=tv["t"],
-                legs=legs, travel=st["trav"], swap=swap, refuel=refuel, unit=unit, prev_unit=prev,
+                legs=legs, travel=st["trav"], distance_km=_km(mem, st["trav"]),
+                swap=swap, refuel=refuel, recharge=recharge, unit=unit, prev_unit=prev,
                 yard_at=yard_at, take_at=take_at, start=start, end=start + work, work=work,
-                fuel_after=st["fuel"] - work, deadline=job["deadline"])
+                fuel_after=st["fuel"] - work, battery_after=st["battery"] - work,
+                odometer_km=round(tv["km"] + _km(mem, st["trav"]), 1), deadline=job["deadline"])
 
 
 def _apply(task, tv, units, field_free):
@@ -67,7 +81,8 @@ def _apply(task, tv, units, field_free):
         if task["prev_unit"]:
             units[task["prev_unit"]].update(holder=None, free_at=task["yard_at"])
         units[task["unit"]]["holder"] = tv["id"]
-    tv.update(t=task["end"], pos=task["field"], fuel=task["fuel_after"], unit=task["unit"])
+    tv.update(t=task["end"], pos=task["field"], fuel=task["fuel_after"],
+              battery=task["battery_after"], km=task["odometer_km"], unit=task["unit"])
     field_free[task["field"]] = task["end"]
 
 
@@ -76,6 +91,7 @@ def _score(mem, task, job):
     parts = dict(travel=task["travel"],
                  swap=mem.swap_minutes if task["swap"] else 0,
                  refuel=mem.refuel_minutes if task["refuel"] else 0,
+                 recharge=mem.recharge_minutes if task["recharge"] else 0,
                  wait=0.3 * (task["start"] - mem.now),
                  priority=-20 * job["priority"],
                  slack=0.1 * (job["deadline"] - task["end"]))
@@ -88,7 +104,7 @@ def _reason(mem, tvs, job, units, field_free):
         return f"no working tractor can do a {job['type']} job"
     built = [build_task(mem, tv, job, units, field_free) for tv in able]
     if not any(built):
-        return f"no free {job['implement']}, or not enough fuel"
+        return f"no free {job['implement']}, or not enough fuel or battery"
     return f"no tractor can finish it before the {mem.clock(job['deadline'])} deadline"
 
 

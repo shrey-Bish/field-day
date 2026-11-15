@@ -5,6 +5,8 @@
   "minutes_per_cell": 4,
   "swap_minutes": 10,
   "refuel_minutes": 15,
+  "recharge_minutes": 20,
+  "km_per_cell": 1,
   "recovery_minutes": 30,
   "fields": [
     {"id": "F1", "x": 2, "y": 1},
@@ -23,9 +25,9 @@
     {"id": "SD1", "type": "seeder"}
   ],
   "tractors": [
-    {"id": "T1", "capabilities": ["spray", "mow"], "compatible_implements": ["sprayer", "mower"], "tank_minutes": 300, "implement": null},
-    {"id": "T2", "capabilities": ["mow", "seed"], "compatible_implements": ["mower", "seeder"], "tank_minutes": 260, "implement": null},
-    {"id": "T3", "capabilities": ["spray", "mow", "seed"], "compatible_implements": ["sprayer", "mower", "seeder"], "tank_minutes": 320, "implement": null}
+    {"id": "T1", "capabilities": ["spray", "mow"], "compatible_implements": ["sprayer", "mower"], "tank_minutes": 300, "battery_minutes": 150, "implement": null},
+    {"id": "T2", "capabilities": ["mow", "seed"], "compatible_implements": ["mower", "seeder"], "tank_minutes": 260, "battery_minutes": 130, "implement": null},
+    {"id": "T3", "capabilities": ["spray", "mow", "seed"], "compatible_implements": ["sprayer", "mower", "seeder"], "tank_minutes": 320, "battery_minutes": 160, "implement": null}
   ],
   "jobs": [
     {"id": "J1", "type": "mow", "implement": "mower", "field": "F8", "priority": 1, "deadline": 480, "work_minutes": 50},
