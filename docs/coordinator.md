@@ -1,6 +1,6 @@
 # SYNTERRA coordinator: how it works, how it was tested, what it scores
 
-Owner: Reya (HANDOFF items 1–4). **Runs on plain Python 3 with nothing to install.** `numpy` is used only if present (faster k-Vac; same results), NVIDIA cuOpt only if installed (Linux / WSL2), and `pytest` only for the tests.
+Owner: Reya. **Runs on plain Python 3 with nothing to install.** `numpy` is used only if present (faster k-Vac; same results), NVIDIA cuOpt only if installed (Linux / WSL2), and `pytest` only for the tests.
 No database: all state is in the one shared memory object (`fleet/memory.py`), as the design rules require.
 
 ## How to run
