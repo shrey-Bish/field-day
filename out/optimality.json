@@ -1,0 +1,2300 @@
+{
+  "summary": {
+    "instances": 60,
+    "attempted": 60,
+    "goals_optimal": 60,
+    "fully_optimal": 50,
+    "avg_cost_gap_pct": 1.121,
+    "max_cost_gap_pct": 17.35,
+    "goal_optimal_rate_by_source": {
+      "beam": 56,
+      "fcfs": 23,
+      "greedy": 33,
+      "hungarian": 30,
+      "kvac-wfa": 25,
+      "nearest": 13
+    }
+  },
+  "rows": [
+    {
+      "seed": 1,
+      "jobs": 5,
+      "tractors": 3,
+      "exact_key": [
+        -9,
+        -9,
+        0,
+        360.64
+      ],
+      "synterra_key": [
+        -9,
+        -9,
+        0,
+        360.64
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 261,
+      "exact_s": 2.365,
+      "synterra_s": 0.092,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": false,
+        "hungarian": false,
+        "kvac-wfa": false,
+        "fcfs": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": false,
+        "hungarian": false,
+        "kvac-wfa": false,
+        "fcfs": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 2,
+      "jobs": 6,
+      "tractors": 3,
+      "exact_key": [
+        -13,
+        -13,
+        0,
+        212.72
+      ],
+      "synterra_key": [
+        -13,
+        -13,
+        0,
+        220.56
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 3.69,
+      "exact_states": 4067,
+      "exact_s": 0.448,
+      "synterra_s": 0.415,
+      "origin_optimal": {
+        "beam": true,
+        "fcfs": false,
+        "greedy": false,
+        "hungarian": false,
+        "nearest": false,
+        "kvac-wfa": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "fcfs": true,
+        "greedy": true,
+        "hungarian": true,
+        "nearest": false,
+        "kvac-wfa": false
+      }
+    },
+    {
+      "seed": 3,
+      "jobs": 6,
+      "tractors": 2,
+      "exact_key": [
+        -11,
+        -11,
+        0,
+        309.8
+      ],
+      "synterra_key": [
+        -11,
+        -11,
+        0,
+        309.8
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 492,
+      "exact_s": 0.127,
+      "synterra_s": 0.251,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": false,
+        "hungarian": false,
+        "fcfs": false,
+        "kvac-wfa": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "fcfs": false,
+        "kvac-wfa": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 4,
+      "jobs": 7,
+      "tractors": 3,
+      "exact_key": [
+        -11,
+        -11,
+        0,
+        175.32
+      ],
+      "synterra_key": [
+        -11,
+        -11,
+        0,
+        175.32
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 3046,
+      "exact_s": 0.41,
+      "synterra_s": 0.421,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": false,
+        "kvac-wfa": false,
+        "hungarian": false,
+        "fcfs": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "kvac-wfa": true,
+        "hungarian": false,
+        "fcfs": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 5,
+      "jobs": 4,
+      "tractors": 2,
+      "exact_key": [
+        -5,
+        -5,
+        0,
+        103.12
+      ],
+      "synterra_key": [
+        -5,
+        -5,
+        0,
+        103.12
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 135,
+      "exact_s": 0.037,
+      "synterra_s": 0.074,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": false,
+        "kvac-wfa": false,
+        "hungarian": false,
+        "fcfs": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "kvac-wfa": true,
+        "hungarian": true,
+        "fcfs": true,
+        "nearest": true
+      }
+    },
+    {
+      "seed": 6,
+      "jobs": 5,
+      "tractors": 3,
+      "exact_key": [
+        -12,
+        -12,
+        0,
+        126.48
+      ],
+      "synterra_key": [
+        -12,
+        -12,
+        0,
+        126.48
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 665,
+      "exact_s": 0.148,
+      "synterra_s": 0.234,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "fcfs": false,
+        "nearest": false,
+        "kvac-wfa": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "fcfs": true,
+        "nearest": true,
+        "kvac-wfa": true
+      }
+    },
+    {
+      "seed": 7,
+      "jobs": 6,
+      "tractors": 2,
+      "exact_key": [
+        -5,
+        -5,
+        0,
+        147.02
+      ],
+      "synterra_key": [
+        -5,
+        -5,
+        0,
+        147.02
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 33,
+      "exact_s": 0.011,
+      "synterra_s": 0.052,
+      "origin_optimal": {
+        "beam": true,
+        "fcfs": false,
+        "nearest": false,
+        "kvac-wfa": false,
+        "hungarian": false,
+        "greedy": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "fcfs": true,
+        "nearest": true,
+        "kvac-wfa": true,
+        "hungarian": false,
+        "greedy": false
+      }
+    },
+    {
+      "seed": 8,
+      "jobs": 7,
+      "tractors": 2,
+      "exact_key": [
+        -13,
+        -13,
+        0,
+        295.42
+      ],
+      "synterra_key": [
+        -13,
+        -13,
+        0,
+        295.42
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 209,
+      "exact_s": 0.156,
+      "synterra_s": 0.387,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": false,
+        "hungarian": false,
+        "fcfs": false,
+        "kvac-wfa": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": false,
+        "hungarian": false,
+        "fcfs": false,
+        "kvac-wfa": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 9,
+      "jobs": 8,
+      "tractors": 2,
+      "exact_key": [
+        -10,
+        -10,
+        0,
+        194.4
+      ],
+      "synterra_key": [
+        -10,
+        -10,
+        0,
+        194.4
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 37,
+      "exact_s": 0.029,
+      "synterra_s": 0.106,
+      "origin_optimal": {
+        "beam": true,
+        "kvac-wfa": false,
+        "greedy": false,
+        "hungarian": false,
+        "fcfs": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "kvac-wfa": true,
+        "greedy": false,
+        "hungarian": false,
+        "fcfs": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 10,
+      "jobs": 4,
+      "tractors": 3,
+      "exact_key": [
+        -7,
+        -7,
+        0,
+        159.28
+      ],
+      "synterra_key": [
+        -7,
+        -7,
+        0,
+        159.28
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 365,
+      "exact_s": 0.061,
+      "synterra_s": 0.11,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": false,
+        "hungarian": false,
+        "fcfs": false,
+        "nearest": false,
+        "kvac-wfa": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "fcfs": true,
+        "nearest": true,
+        "kvac-wfa": true
+      }
+    },
+    {
+      "seed": 11,
+      "jobs": 5,
+      "tractors": 2,
+      "exact_key": [
+        -10,
+        -10,
+        0,
+        276.6
+      ],
+      "synterra_key": [
+        -10,
+        -10,
+        0,
+        276.6
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 84,
+      "exact_s": 0.051,
+      "synterra_s": 0.147,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "fcfs": false,
+        "nearest": false,
+        "kvac-wfa": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "fcfs": false,
+        "nearest": false,
+        "kvac-wfa": false
+      }
+    },
+    {
+      "seed": 12,
+      "jobs": 5,
+      "tractors": 3,
+      "exact_key": [
+        -14,
+        -14,
+        0,
+        300.5
+      ],
+      "synterra_key": [
+        -14,
+        -14,
+        0,
+        300.5
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 291,
+      "exact_s": 0.062,
+      "synterra_s": 0.134,
+      "origin_optimal": {
+        "beam": true,
+        "fcfs": true,
+        "hungarian": true,
+        "nearest": false,
+        "greedy": false,
+        "kvac-wfa": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "fcfs": true,
+        "hungarian": true,
+        "nearest": false,
+        "greedy": false,
+        "kvac-wfa": false
+      }
+    },
+    {
+      "seed": 13,
+      "jobs": 7,
+      "tractors": 2,
+      "exact_key": [
+        -13,
+        -15,
+        436,
+        600.06
+      ],
+      "synterra_key": [
+        -13,
+        -15,
+        436,
+        600.06
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 1193,
+      "exact_s": 0.22,
+      "synterra_s": 0.333,
+      "origin_optimal": {
+        "beam": true,
+        "hungarian": false,
+        "greedy": false,
+        "kvac-wfa": false,
+        "fcfs": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "hungarian": false,
+        "greedy": false,
+        "kvac-wfa": false,
+        "fcfs": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 14,
+      "jobs": 7,
+      "tractors": 3,
+      "exact_key": [
+        -13,
+        -13,
+        0,
+        371.06
+      ],
+      "synterra_key": [
+        -13,
+        -13,
+        0,
+        371.06
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 1969,
+      "exact_s": 0.4,
+      "synterra_s": 0.504,
+      "origin_optimal": {
+        "kvac-wfa": false,
+        "beam": false,
+        "fcfs": false,
+        "hungarian": false,
+        "greedy": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "kvac-wfa": true,
+        "beam": false,
+        "fcfs": false,
+        "hungarian": false,
+        "greedy": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 15,
+      "jobs": 4,
+      "tractors": 2,
+      "exact_key": [
+        -5,
+        -5,
+        0,
+        159.78
+      ],
+      "synterra_key": [
+        -5,
+        -5,
+        0,
+        159.78
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 265,
+      "exact_s": 0.053,
+      "synterra_s": 0.108,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": false,
+        "hungarian": false,
+        "kvac-wfa": false,
+        "nearest": false,
+        "fcfs": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "kvac-wfa": true,
+        "nearest": false,
+        "fcfs": false
+      }
+    },
+    {
+      "seed": 16,
+      "jobs": 5,
+      "tractors": 3,
+      "exact_key": [
+        -10,
+        -10,
+        0,
+        176.54
+      ],
+      "synterra_key": [
+        -10,
+        -10,
+        0,
+        176.54
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 398,
+      "exact_s": 0.102,
+      "synterra_s": 0.194,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": false,
+        "hungarian": false,
+        "fcfs": false,
+        "kvac-wfa": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "fcfs": true,
+        "kvac-wfa": true,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 17,
+      "jobs": 6,
+      "tractors": 2,
+      "exact_key": [
+        -16,
+        -16,
+        0,
+        406.94
+      ],
+      "synterra_key": [
+        -16,
+        -16,
+        0,
+        406.94
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 2257,
+      "exact_s": 0.369,
+      "synterra_s": 0.381,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": false,
+        "fcfs": false,
+        "hungarian": false,
+        "kvac-wfa": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "fcfs": true,
+        "hungarian": false,
+        "kvac-wfa": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 18,
+      "jobs": 7,
+      "tractors": 2,
+      "exact_key": [
+        -13,
+        -13,
+        0,
+        345.66
+      ],
+      "synterra_key": [
+        -13,
+        -13,
+        0,
+        360.86
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 4.4,
+      "exact_states": 912,
+      "exact_s": 0.21,
+      "synterra_s": 0.372,
+      "origin_optimal": {
+        "beam": false,
+        "hungarian": false,
+        "kvac-wfa": false,
+        "greedy": false,
+        "fcfs": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "hungarian": false,
+        "kvac-wfa": false,
+        "greedy": false,
+        "fcfs": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 19,
+      "jobs": 8,
+      "tractors": 3,
+      "exact_key": [
+        -18,
+        -18,
+        0,
+        582.98
+      ],
+      "synterra_key": [
+        -18,
+        -18,
+        0,
+        592.38
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 1.61,
+      "exact_states": 107151,
+      "exact_s": 10.983,
+      "synterra_s": 1.234,
+      "origin_optimal": {
+        "beam": false,
+        "greedy": false,
+        "hungarian": false,
+        "fcfs": false,
+        "nearest": false,
+        "kvac-wfa": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": false,
+        "fcfs": false,
+        "nearest": false,
+        "kvac-wfa": false
+      }
+    },
+    {
+      "seed": 20,
+      "jobs": 4,
+      "tractors": 2,
+      "exact_key": [
+        -5,
+        -6,
+        99,
+        210.26
+      ],
+      "synterra_key": [
+        -5,
+        -6,
+        99,
+        210.26
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 54,
+      "exact_s": 0.011,
+      "synterra_s": 0.03,
+      "origin_optimal": {
+        "beam": true,
+        "hungarian": true,
+        "greedy": false,
+        "kvac-wfa": false,
+        "fcfs": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "hungarian": true,
+        "greedy": false,
+        "kvac-wfa": false,
+        "fcfs": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 21,
+      "jobs": 5,
+      "tractors": 2,
+      "exact_key": [
+        -8,
+        -8,
+        0,
+        304.6
+      ],
+      "synterra_key": [
+        -8,
+        -8,
+        0,
+        304.6
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 124,
+      "exact_s": 0.041,
+      "synterra_s": 0.101,
+      "origin_optimal": {
+        "beam": true,
+        "hungarian": true,
+        "fcfs": false,
+        "nearest": false,
+        "greedy": false,
+        "kvac-wfa": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "hungarian": true,
+        "fcfs": false,
+        "nearest": false,
+        "greedy": false,
+        "kvac-wfa": false
+      }
+    },
+    {
+      "seed": 22,
+      "jobs": 6,
+      "tractors": 3,
+      "exact_key": [
+        -11,
+        -11,
+        0,
+        278.68
+      ],
+      "synterra_key": [
+        -11,
+        -11,
+        0,
+        278.68
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 3153,
+      "exact_s": 0.47,
+      "synterra_s": 0.387,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": false,
+        "hungarian": false,
+        "nearest": false,
+        "fcfs": false,
+        "kvac-wfa": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "nearest": true,
+        "fcfs": true,
+        "kvac-wfa": true
+      }
+    },
+    {
+      "seed": 23,
+      "jobs": 7,
+      "tractors": 3,
+      "exact_key": [
+        -14,
+        -15,
+        248,
+        474.24
+      ],
+      "synterra_key": [
+        -14,
+        -15,
+        248,
+        474.24
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 1133,
+      "exact_s": 0.248,
+      "synterra_s": 0.564,
+      "origin_optimal": {
+        "beam": true,
+        "hungarian": false,
+        "nearest": false,
+        "greedy": false,
+        "fcfs": false,
+        "kvac-wfa": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "hungarian": false,
+        "nearest": false,
+        "greedy": false,
+        "fcfs": false,
+        "kvac-wfa": false
+      }
+    },
+    {
+      "seed": 24,
+      "jobs": 8,
+      "tractors": 3,
+      "exact_key": [
+        -14,
+        -14,
+        0,
+        348.02
+      ],
+      "synterra_key": [
+        -14,
+        -14,
+        0,
+        348.02
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 8311,
+      "exact_s": 1.102,
+      "synterra_s": 0.568,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": false,
+        "fcfs": false,
+        "nearest": false,
+        "kvac-wfa": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": false,
+        "fcfs": false,
+        "nearest": false,
+        "kvac-wfa": false
+      }
+    },
+    {
+      "seed": 25,
+      "jobs": 4,
+      "tractors": 3,
+      "exact_key": [
+        -8,
+        -9,
+        41,
+        259.98
+      ],
+      "synterra_key": [
+        -8,
+        -9,
+        41,
+        259.98
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 148,
+      "exact_s": 0.019,
+      "synterra_s": 0.044,
+      "origin_optimal": {
+        "beam": true,
+        "hungarian": false,
+        "kvac-wfa": false,
+        "fcfs": false,
+        "nearest": false,
+        "greedy": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "hungarian": false,
+        "kvac-wfa": false,
+        "fcfs": false,
+        "nearest": false,
+        "greedy": false
+      }
+    },
+    {
+      "seed": 26,
+      "jobs": 5,
+      "tractors": 2,
+      "exact_key": [
+        -12,
+        -14,
+        170,
+        239.74
+      ],
+      "synterra_key": [
+        -12,
+        -14,
+        170,
+        239.74
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 357,
+      "exact_s": 0.036,
+      "synterra_s": 0.061,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": false,
+        "hungarian": false,
+        "kvac-wfa": false,
+        "fcfs": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": false,
+        "hungarian": false,
+        "kvac-wfa": false,
+        "fcfs": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 27,
+      "jobs": 6,
+      "tractors": 3,
+      "exact_key": [
+        -7,
+        -7,
+        0,
+        132.78
+      ],
+      "synterra_key": [
+        -7,
+        -7,
+        0,
+        132.78
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 171,
+      "exact_s": 0.026,
+      "synterra_s": 0.055,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": false,
+        "fcfs": false,
+        "nearest": false,
+        "hungarian": false,
+        "kvac-wfa": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": false,
+        "fcfs": false,
+        "nearest": false,
+        "hungarian": false,
+        "kvac-wfa": false
+      }
+    },
+    {
+      "seed": 28,
+      "jobs": 6,
+      "tractors": 3,
+      "exact_key": [
+        -12,
+        -12,
+        0,
+        303.62
+      ],
+      "synterra_key": [
+        -12,
+        -12,
+        0,
+        303.62
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 1346,
+      "exact_s": 0.109,
+      "synterra_s": 0.186,
+      "origin_optimal": {
+        "beam": false,
+        "hungarian": false,
+        "greedy": false,
+        "fcfs": false,
+        "kvac-wfa": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": false,
+        "hungarian": false,
+        "greedy": false,
+        "fcfs": false,
+        "kvac-wfa": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 29,
+      "jobs": 8,
+      "tractors": 3,
+      "exact_key": [
+        -17,
+        -17,
+        0,
+        361.32
+      ],
+      "synterra_key": [
+        -17,
+        -17,
+        0,
+        424.0
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 17.35,
+      "exact_states": 71042,
+      "exact_s": 6.951,
+      "synterra_s": 0.914,
+      "origin_optimal": {
+        "beam": false,
+        "fcfs": false,
+        "hungarian": false,
+        "greedy": false,
+        "nearest": false,
+        "kvac-wfa": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "fcfs": false,
+        "hungarian": false,
+        "greedy": false,
+        "nearest": false,
+        "kvac-wfa": false
+      }
+    },
+    {
+      "seed": 30,
+      "jobs": 4,
+      "tractors": 2,
+      "exact_key": [
+        -7,
+        -7,
+        0,
+        100.42
+      ],
+      "synterra_key": [
+        -7,
+        -7,
+        0,
+        102.52
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 2.09,
+      "exact_states": 53,
+      "exact_s": 0.014,
+      "synterra_s": 0.042,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": false,
+        "hungarian": false,
+        "nearest": false,
+        "kvac-wfa": false,
+        "fcfs": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "nearest": true,
+        "kvac-wfa": false,
+        "fcfs": false
+      }
+    },
+    {
+      "seed": 31,
+      "jobs": 5,
+      "tractors": 2,
+      "exact_key": [
+        -8,
+        -8,
+        0,
+        196.4
+      ],
+      "synterra_key": [
+        -8,
+        -8,
+        0,
+        196.4
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 1131,
+      "exact_s": 0.179,
+      "synterra_s": 0.253,
+      "origin_optimal": {
+        "beam": true,
+        "nearest": false,
+        "kvac-wfa": false,
+        "fcfs": false,
+        "hungarian": false,
+        "greedy": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "nearest": true,
+        "kvac-wfa": true,
+        "fcfs": true,
+        "hungarian": false,
+        "greedy": false
+      }
+    },
+    {
+      "seed": 32,
+      "jobs": 6,
+      "tractors": 2,
+      "exact_key": [
+        -10,
+        -11,
+        230,
+        490.06
+      ],
+      "synterra_key": [
+        -10,
+        -11,
+        230,
+        490.06
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 1513,
+      "exact_s": 0.209,
+      "synterra_s": 0.268,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": false,
+        "hungarian": false,
+        "kvac-wfa": false,
+        "fcfs": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": false,
+        "hungarian": false,
+        "kvac-wfa": false,
+        "fcfs": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 33,
+      "jobs": 7,
+      "tractors": 3,
+      "exact_key": [
+        -13,
+        -13,
+        0,
+        356.58
+      ],
+      "synterra_key": [
+        -13,
+        -13,
+        0,
+        407.4
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 14.25,
+      "exact_states": 21093,
+      "exact_s": 2.042,
+      "synterra_s": 0.672,
+      "origin_optimal": {
+        "beam": false,
+        "greedy": false,
+        "fcfs": false,
+        "hungarian": false,
+        "kvac-wfa": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "fcfs": false,
+        "hungarian": false,
+        "kvac-wfa": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 34,
+      "jobs": 7,
+      "tractors": 2,
+      "exact_key": [
+        -17,
+        -17,
+        0,
+        347.66
+      ],
+      "synterra_key": [
+        -17,
+        -17,
+        0,
+        349.82
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.62,
+      "exact_states": 3138,
+      "exact_s": 0.436,
+      "synterra_s": 0.433,
+      "origin_optimal": {
+        "beam": false,
+        "greedy": false,
+        "hungarian": false,
+        "kvac-wfa": false,
+        "fcfs": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "kvac-wfa": false,
+        "fcfs": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 35,
+      "jobs": 4,
+      "tractors": 3,
+      "exact_key": [
+        -7,
+        -7,
+        0,
+        123.6
+      ],
+      "synterra_key": [
+        -7,
+        -7,
+        0,
+        123.6
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 173,
+      "exact_s": 0.043,
+      "synterra_s": 0.109,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": false,
+        "hungarian": false,
+        "fcfs": false,
+        "kvac-wfa": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "fcfs": true,
+        "kvac-wfa": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 36,
+      "jobs": 5,
+      "tractors": 3,
+      "exact_key": [
+        -7,
+        -7,
+        0,
+        119.8
+      ],
+      "synterra_key": [
+        -7,
+        -7,
+        0,
+        119.8
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 2183,
+      "exact_s": 0.326,
+      "synterra_s": 0.294,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": false,
+        "hungarian": false,
+        "fcfs": false,
+        "nearest": false,
+        "kvac-wfa": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "fcfs": true,
+        "nearest": true,
+        "kvac-wfa": true
+      }
+    },
+    {
+      "seed": 37,
+      "jobs": 6,
+      "tractors": 3,
+      "exact_key": [
+        -12,
+        -12,
+        0,
+        278.76
+      ],
+      "synterra_key": [
+        -12,
+        -12,
+        0,
+        278.76
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 1110,
+      "exact_s": 0.217,
+      "synterra_s": 0.36,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": false,
+        "hungarian": false,
+        "fcfs": false,
+        "nearest": false,
+        "kvac-wfa": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": false,
+        "fcfs": false,
+        "nearest": false,
+        "kvac-wfa": false
+      }
+    },
+    {
+      "seed": 38,
+      "jobs": 7,
+      "tractors": 3,
+      "exact_key": [
+        -15,
+        -16,
+        10,
+        294.6
+      ],
+      "synterra_key": [
+        -15,
+        -16,
+        10,
+        294.6
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 27608,
+      "exact_s": 2.729,
+      "synterra_s": 0.865,
+      "origin_optimal": {
+        "beam": false,
+        "hungarian": false,
+        "fcfs": false,
+        "greedy": false,
+        "kvac-wfa": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "hungarian": true,
+        "fcfs": true,
+        "greedy": false,
+        "kvac-wfa": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 39,
+      "jobs": 8,
+      "tractors": 3,
+      "exact_key": [
+        -21,
+        -21,
+        0,
+        287.12
+      ],
+      "synterra_key": [
+        -21,
+        -21,
+        0,
+        307.56
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 7.12,
+      "exact_states": 391114,
+      "exact_s": 33.531,
+      "synterra_s": 1.217,
+      "origin_optimal": {
+        "beam": false,
+        "greedy": false,
+        "hungarian": false,
+        "kvac-wfa": false,
+        "fcfs": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "kvac-wfa": true,
+        "fcfs": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 40,
+      "jobs": 4,
+      "tractors": 3,
+      "exact_key": [
+        -9,
+        -9,
+        0,
+        185.6
+      ],
+      "synterra_key": [
+        -9,
+        -9,
+        0,
+        185.6
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 106,
+      "exact_s": 0.024,
+      "synterra_s": 0.073,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "kvac-wfa": false,
+        "fcfs": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "kvac-wfa": true,
+        "fcfs": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 41,
+      "jobs": 5,
+      "tractors": 2,
+      "exact_key": [
+        -9,
+        -9,
+        0,
+        95.52
+      ],
+      "synterra_key": [
+        -9,
+        -9,
+        0,
+        95.52
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 168,
+      "exact_s": 0.033,
+      "synterra_s": 0.06,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": false,
+        "kvac-wfa": false,
+        "hungarian": false,
+        "nearest": false,
+        "fcfs": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "kvac-wfa": true,
+        "hungarian": true,
+        "nearest": true,
+        "fcfs": true
+      }
+    },
+    {
+      "seed": 42,
+      "jobs": 6,
+      "tractors": 2,
+      "exact_key": [
+        -10,
+        -10,
+        0,
+        227.52
+      ],
+      "synterra_key": [
+        -10,
+        -10,
+        0,
+        227.52
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 822,
+      "exact_s": 0.144,
+      "synterra_s": 0.225,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": false,
+        "hungarian": false,
+        "fcfs": false,
+        "kvac-wfa": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "fcfs": true,
+        "kvac-wfa": true,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 43,
+      "jobs": 6,
+      "tractors": 2,
+      "exact_key": [
+        -11,
+        -11,
+        0,
+        271.42
+      ],
+      "synterra_key": [
+        -11,
+        -11,
+        0,
+        271.42
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 1274,
+      "exact_s": 0.23,
+      "synterra_s": 0.336,
+      "origin_optimal": {
+        "beam": false,
+        "greedy": false,
+        "kvac-wfa": false,
+        "hungarian": false,
+        "fcfs": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": false,
+        "greedy": false,
+        "kvac-wfa": false,
+        "hungarian": false,
+        "fcfs": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 44,
+      "jobs": 7,
+      "tractors": 2,
+      "exact_key": [
+        -12,
+        -16,
+        714,
+        436.66
+      ],
+      "synterra_key": [
+        -12,
+        -16,
+        714,
+        436.66
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 1053,
+      "exact_s": 0.219,
+      "synterra_s": 0.448,
+      "origin_optimal": {
+        "beam": false,
+        "hungarian": false,
+        "greedy": false,
+        "fcfs": false,
+        "nearest": false,
+        "kvac-wfa": false
+      },
+      "origin_goal_optimal": {
+        "beam": false,
+        "hungarian": false,
+        "greedy": false,
+        "fcfs": false,
+        "nearest": false,
+        "kvac-wfa": false
+      }
+    },
+    {
+      "seed": 45,
+      "jobs": 4,
+      "tractors": 3,
+      "exact_key": [
+        -9,
+        -9,
+        0,
+        95.84
+      ],
+      "synterra_key": [
+        -9,
+        -9,
+        0,
+        95.84
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 151,
+      "exact_s": 0.037,
+      "synterra_s": 0.075,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": true,
+        "fcfs": true,
+        "hungarian": true,
+        "kvac-wfa": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "fcfs": true,
+        "hungarian": true,
+        "kvac-wfa": true,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 46,
+      "jobs": 5,
+      "tractors": 2,
+      "exact_key": [
+        -11,
+        -11,
+        0,
+        230.98
+      ],
+      "synterra_key": [
+        -11,
+        -11,
+        0,
+        230.98
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 219,
+      "exact_s": 0.039,
+      "synterra_s": 0.11,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "fcfs": false,
+        "nearest": false,
+        "kvac-wfa": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "fcfs": true,
+        "nearest": true,
+        "kvac-wfa": true
+      }
+    },
+    {
+      "seed": 47,
+      "jobs": 6,
+      "tractors": 2,
+      "exact_key": [
+        -10,
+        -10,
+        0,
+        119.12
+      ],
+      "synterra_key": [
+        -10,
+        -10,
+        0,
+        119.12
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 445,
+      "exact_s": 0.094,
+      "synterra_s": 0.135,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": false,
+        "fcfs": false,
+        "nearest": false,
+        "kvac-wfa": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "fcfs": true,
+        "nearest": true,
+        "kvac-wfa": false
+      }
+    },
+    {
+      "seed": 48,
+      "jobs": 5,
+      "tractors": 2,
+      "exact_key": [
+        -10,
+        -10,
+        0,
+        236.16
+      ],
+      "synterra_key": [
+        -10,
+        -10,
+        0,
+        245.28
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 3.86,
+      "exact_states": 627,
+      "exact_s": 0.145,
+      "synterra_s": 0.212,
+      "origin_optimal": {
+        "beam": true,
+        "hungarian": false,
+        "greedy": false,
+        "kvac-wfa": false,
+        "fcfs": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "hungarian": true,
+        "greedy": true,
+        "kvac-wfa": false,
+        "fcfs": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 49,
+      "jobs": 8,
+      "tractors": 2,
+      "exact_key": [
+        -14,
+        -19,
+        762,
+        399.0
+      ],
+      "synterra_key": [
+        -14,
+        -19,
+        762,
+        399.0
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 34409,
+      "exact_s": 2.535,
+      "synterra_s": 0.868,
+      "origin_optimal": {
+        "beam": true,
+        "fcfs": false,
+        "hungarian": false,
+        "greedy": false,
+        "kvac-wfa": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "fcfs": false,
+        "hungarian": false,
+        "greedy": false,
+        "kvac-wfa": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 50,
+      "jobs": 4,
+      "tractors": 2,
+      "exact_key": [
+        -9,
+        -9,
+        0,
+        225.7
+      ],
+      "synterra_key": [
+        -9,
+        -9,
+        0,
+        225.7
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 182,
+      "exact_s": 0.039,
+      "synterra_s": 0.075,
+      "origin_optimal": {
+        "beam": true,
+        "nearest": false,
+        "kvac-wfa": false,
+        "fcfs": false,
+        "hungarian": false,
+        "greedy": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "nearest": true,
+        "kvac-wfa": true,
+        "fcfs": true,
+        "hungarian": false,
+        "greedy": false
+      }
+    },
+    {
+      "seed": 51,
+      "jobs": 5,
+      "tractors": 3,
+      "exact_key": [
+        -11,
+        -11,
+        0,
+        133.64
+      ],
+      "synterra_key": [
+        -11,
+        -11,
+        0,
+        133.64
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 349,
+      "exact_s": 0.076,
+      "synterra_s": 0.163,
+      "origin_optimal": {
+        "beam": true,
+        "hungarian": false,
+        "greedy": false,
+        "kvac-wfa": false,
+        "fcfs": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "hungarian": true,
+        "greedy": true,
+        "kvac-wfa": true,
+        "fcfs": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 52,
+      "jobs": 6,
+      "tractors": 3,
+      "exact_key": [
+        -13,
+        -13,
+        0,
+        297.68
+      ],
+      "synterra_key": [
+        -13,
+        -13,
+        0,
+        297.68
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 4043,
+      "exact_s": 0.5,
+      "synterra_s": 0.464,
+      "origin_optimal": {
+        "beam": true,
+        "fcfs": false,
+        "greedy": false,
+        "hungarian": false,
+        "kvac-wfa": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "fcfs": false,
+        "greedy": false,
+        "hungarian": false,
+        "kvac-wfa": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 53,
+      "jobs": 6,
+      "tractors": 2,
+      "exact_key": [
+        -10,
+        -10,
+        0,
+        206.66
+      ],
+      "synterra_key": [
+        -10,
+        -10,
+        0,
+        206.66
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 435,
+      "exact_s": 0.114,
+      "synterra_s": 0.274,
+      "origin_optimal": {
+        "beam": true,
+        "fcfs": false,
+        "nearest": false,
+        "kvac-wfa": false,
+        "hungarian": false,
+        "greedy": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "fcfs": true,
+        "nearest": true,
+        "kvac-wfa": true,
+        "hungarian": false,
+        "greedy": false
+      }
+    },
+    {
+      "seed": 54,
+      "jobs": 7,
+      "tractors": 3,
+      "exact_key": [
+        -10,
+        -11,
+        15,
+        260.84
+      ],
+      "synterra_key": [
+        -10,
+        -11,
+        15,
+        260.84
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 4356,
+      "exact_s": 0.567,
+      "synterra_s": 0.596,
+      "origin_optimal": {
+        "beam": false,
+        "fcfs": false,
+        "hungarian": false,
+        "greedy": false,
+        "kvac-wfa": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "fcfs": false,
+        "hungarian": false,
+        "greedy": false,
+        "kvac-wfa": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 55,
+      "jobs": 4,
+      "tractors": 3,
+      "exact_key": [
+        -6,
+        -6,
+        0,
+        81.82
+      ],
+      "synterra_key": [
+        -6,
+        -6,
+        0,
+        81.82
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 301,
+      "exact_s": 0.055,
+      "synterra_s": 0.132,
+      "origin_optimal": {
+        "beam": true,
+        "hungarian": true,
+        "greedy": false,
+        "fcfs": false,
+        "kvac-wfa": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "hungarian": true,
+        "greedy": true,
+        "fcfs": true,
+        "kvac-wfa": true,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 56,
+      "jobs": 5,
+      "tractors": 2,
+      "exact_key": [
+        -10,
+        -10,
+        0,
+        258.6
+      ],
+      "synterra_key": [
+        -10,
+        -10,
+        0,
+        258.6
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 141,
+      "exact_s": 0.064,
+      "synterra_s": 0.131,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": false,
+        "hungarian": false,
+        "kvac-wfa": false,
+        "fcfs": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "kvac-wfa": true,
+        "fcfs": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 57,
+      "jobs": 6,
+      "tractors": 3,
+      "exact_key": [
+        -11,
+        -11,
+        0,
+        237.08
+      ],
+      "synterra_key": [
+        -11,
+        -11,
+        0,
+        266.18
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 12.27,
+      "exact_states": 3489,
+      "exact_s": 0.485,
+      "synterra_s": 0.55,
+      "origin_optimal": {
+        "beam": false,
+        "hungarian": false,
+        "greedy": false,
+        "fcfs": false,
+        "kvac-wfa": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "hungarian": true,
+        "greedy": true,
+        "fcfs": true,
+        "kvac-wfa": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 58,
+      "jobs": 7,
+      "tractors": 3,
+      "exact_key": [
+        -14,
+        -14,
+        0,
+        204.5
+      ],
+      "synterra_key": [
+        -14,
+        -14,
+        0,
+        204.5
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 12541,
+      "exact_s": 1.426,
+      "synterra_s": 0.693,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "fcfs": false,
+        "kvac-wfa": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "hungarian": true,
+        "fcfs": true,
+        "kvac-wfa": true,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 59,
+      "jobs": 8,
+      "tractors": 2,
+      "exact_key": [
+        -13,
+        -14,
+        225,
+        536.82
+      ],
+      "synterra_key": [
+        -13,
+        -14,
+        225,
+        536.82
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 1091,
+      "exact_s": 0.277,
+      "synterra_s": 0.567,
+      "origin_optimal": {
+        "beam": true,
+        "fcfs": false,
+        "hungarian": false,
+        "greedy": false,
+        "kvac-wfa": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "fcfs": false,
+        "hungarian": false,
+        "greedy": false,
+        "kvac-wfa": false,
+        "nearest": false
+      }
+    },
+    {
+      "seed": 60,
+      "jobs": 4,
+      "tractors": 2,
+      "exact_key": [
+        -8,
+        -8,
+        0,
+        189.62
+      ],
+      "synterra_key": [
+        -8,
+        -8,
+        0,
+        189.62
+      ],
+      "goals_match": true,
+      "cost_gap_pct": 0.0,
+      "exact_states": 18,
+      "exact_s": 0.008,
+      "synterra_s": 0.032,
+      "origin_optimal": {
+        "beam": true,
+        "greedy": false,
+        "kvac-wfa": false,
+        "hungarian": false,
+        "fcfs": false,
+        "nearest": false
+      },
+      "origin_goal_optimal": {
+        "beam": true,
+        "greedy": true,
+        "kvac-wfa": true,
+        "hungarian": false,
+        "fcfs": false,
+        "nearest": false
+      }
+    }
+  ]
+}

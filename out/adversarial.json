@@ -1,0 +1,385 @@
+{
+  "scenarios": 500,
+  "failures": [
+    {
+      "seed": 2,
+      "jobs": 8,
+      "events": 3,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 14 < 16 (FCFS)"
+    },
+    {
+      "seed": 17,
+      "jobs": 6,
+      "events": 5,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 0 < 3 (FCFS)"
+    },
+    {
+      "seed": 25,
+      "jobs": 9,
+      "events": 5,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 9 < 10 (FCFS)"
+    },
+    {
+      "seed": 35,
+      "jobs": 5,
+      "events": 2,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 11 < 12 (FCFS)"
+    },
+    {
+      "seed": 50,
+      "jobs": 5,
+      "events": 7,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 3 < 5 (FCFS)"
+    },
+    {
+      "seed": 73,
+      "jobs": 9,
+      "events": 5,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 4 < 6 (FCFS)"
+    },
+    {
+      "seed": 99,
+      "jobs": 8,
+      "events": 7,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 6 < 9 (FCFS)"
+    },
+    {
+      "seed": 169,
+      "jobs": 5,
+      "events": 2,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 10 < 11 (FCFS)"
+    },
+    {
+      "seed": 185,
+      "jobs": 10,
+      "events": 5,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 4 < 5 (FCFS)"
+    },
+    {
+      "seed": 213,
+      "jobs": 5,
+      "events": 5,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 5 < 6 (FCFS)"
+    },
+    {
+      "seed": 284,
+      "jobs": 6,
+      "events": 6,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 9 < 10 (FCFS)"
+    },
+    {
+      "seed": 287,
+      "jobs": 6,
+      "events": 7,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 12 < 15 (FCFS)"
+    },
+    {
+      "seed": 315,
+      "jobs": 9,
+      "events": 6,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 1 < 2 (FCFS)"
+    },
+    {
+      "seed": 349,
+      "jobs": 7,
+      "events": 7,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 8 < 9 (FCFS)"
+    },
+    {
+      "seed": 374,
+      "jobs": 6,
+      "events": 3,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 11 < 14 (FCFS)"
+    },
+    {
+      "seed": 384,
+      "jobs": 10,
+      "events": 7,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 3 < 5 (FCFS)"
+    },
+    {
+      "seed": 401,
+      "jobs": 10,
+      "events": 5,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 17 < 19 (FCFS)"
+    },
+    {
+      "seed": 420,
+      "jobs": 9,
+      "events": 3,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 7 < 8 (FCFS)"
+    },
+    {
+      "seed": 427,
+      "jobs": 7,
+      "events": 5,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 9 < 12 (FCFS)"
+    },
+    {
+      "seed": 453,
+      "jobs": 6,
+      "events": 6,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 11 < 12 (FCFS)"
+    },
+    {
+      "seed": 494,
+      "jobs": 7,
+      "events": 5,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 4 < 6 (FCFS)"
+    },
+    {
+      "seed": 495,
+      "jobs": 5,
+      "events": 1,
+      "policy": "smart",
+      "kind": "worse than baseline",
+      "detail": "on-time priority 4 < 5 (FCFS)"
+    }
+  ],
+  "totals": {
+    "smart": {
+      "on_time": 2648,
+      "pw_on_time": 5807,
+      "completed": 3202,
+      "travel": 153056.0,
+      "violations": 0,
+      "runs": 500
+    },
+    "fcfs": {
+      "on_time": 1852,
+      "pw_on_time": 3795,
+      "completed": 3057,
+      "travel": 172369.0,
+      "violations": 0,
+      "runs": 500
+    },
+    "nearest": {
+      "on_time": 1570,
+      "pw_on_time": 3228,
+      "completed": 3043,
+      "travel": 178989.0,
+      "violations": 0,
+      "runs": 500
+    }
+  },
+  "clearest_failure": {
+    "seed": 495,
+    "jobs": 5,
+    "events": 1,
+    "policy": "smart",
+    "kind": "worse than baseline",
+    "detail": "on-time priority 4 < 5 (FCFS)"
+  },
+  "clearest_failure_scenario": {
+    "name": "adversarial seed 495",
+    "start_clock": "06:00",
+    "yard": [
+      0,
+      0
+    ],
+    "minutes_per_cell": 4,
+    "swap_minutes": 10,
+    "refuel_minutes": 15,
+    "recharge_minutes": 20,
+    "km_per_cell": 1,
+    "recovery_minutes": 30,
+    "fields": [
+      {
+        "id": "F1",
+        "x": 2,
+        "y": 1
+      },
+      {
+        "id": "F2",
+        "x": 2,
+        "y": 5
+      },
+      {
+        "id": "F3",
+        "x": 6,
+        "y": 9
+      },
+      {
+        "id": "F4",
+        "x": 1,
+        "y": 3
+      },
+      {
+        "id": "F5",
+        "x": 7,
+        "y": 4
+      },
+      {
+        "id": "F6",
+        "x": 2,
+        "y": 7
+      },
+      {
+        "id": "F7",
+        "x": 8,
+        "y": 2
+      },
+      {
+        "id": "F8",
+        "x": 4,
+        "y": 6
+      },
+      {
+        "id": "F9",
+        "x": 7,
+        "y": 7
+      },
+      {
+        "id": "F10",
+        "x": 4,
+        "y": 1
+      }
+    ],
+    "implements": [
+      {
+        "id": "SP1",
+        "type": "sprayer"
+      },
+      {
+        "id": "MW1",
+        "type": "mower"
+      },
+      {
+        "id": "SD1",
+        "type": "seeder"
+      },
+      {
+        "id": "MW2",
+        "type": "mower"
+      }
+    ],
+    "tractors": [
+      {
+        "id": "T1",
+        "capabilities": [
+          "mow",
+          "seed",
+          "spray"
+        ],
+        "compatible_implements": [
+          "mower",
+          "seeder",
+          "sprayer"
+        ],
+        "tank_minutes": 220,
+        "battery_minutes": 110,
+        "implement": null
+      },
+      {
+        "id": "T2",
+        "capabilities": [
+          "mow"
+        ],
+        "compatible_implements": [
+          "mower"
+        ],
+        "tank_minutes": 220,
+        "battery_minutes": 110,
+        "implement": null
+      }
+    ],
+    "jobs": [
+      {
+        "id": "J1",
+        "type": "seed",
+        "implement": "seeder",
+        "field": "F2",
+        "priority": 3,
+        "deadline": 599,
+        "work_minutes": 50
+      },
+      {
+        "id": "J2",
+        "type": "seed",
+        "implement": "seeder",
+        "field": "F10",
+        "priority": 2,
+        "deadline": 560,
+        "work_minutes": 35
+      },
+      {
+        "id": "J3",
+        "type": "spray",
+        "implement": "sprayer",
+        "field": "F7",
+        "priority": 2,
+        "deadline": 226,
+        "work_minutes": 40
+      },
+      {
+        "id": "J4",
+        "type": "spray",
+        "implement": "sprayer",
+        "field": "F5",
+        "priority": 2,
+        "deadline": 491,
+        "work_minutes": 45
+      },
+      {
+        "id": "J5",
+        "type": "seed",
+        "implement": "seeder",
+        "field": "F2",
+        "priority": 2,
+        "deadline": 287,
+        "work_minutes": 50
+      }
+    ],
+    "events": [
+      {
+        "t": 152,
+        "type": "breakdown",
+        "tractor": "T1"
+      }
+    ],
+    "narrow_roads": []
+  },
+  "smart_not_worse_than_fcfs": "478/500"
+}
